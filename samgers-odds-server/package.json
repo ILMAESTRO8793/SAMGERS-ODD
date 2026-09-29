@@ -1,0 +1,16 @@
+{
+  "name": "samgers-odds-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SAMGERS ODDS: FanDuel opening, day-before and live game-day odds for NFL, NCAAF, NBA and European soccer",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

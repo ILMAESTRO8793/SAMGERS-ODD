@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SAMGERS ODDS</title>
+<meta name="theme-color" content="#1D3F8F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SAMGERS">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --ink:#16202C; --muted:#5B6776; --line:#D5DBE3;
+  --brand:#1D3F8F; --gold:#C79A1E; --up:#177245; --down:#B3261E; --chip:#E2E7EE; --soft:#F5F7FA;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0F1620;--surface:#17212E;--ink:#E7ECF2;--muted:#95A2B3;--line:#2A3747;
+  --brand:#8EABF2;--gold:#E0B84A;--up:#4CC38A;--down:#F0776E;--chip:#223044;--soft:#1B2735}
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+header.top{background:var(--brand);color:#fff}
+@media (prefers-color-scheme:dark){header.top{background:#132A5E}}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+.bar{display:flex;align-items:center;gap:16px;padding:14px 0 10px;flex-wrap:wrap}
+.logo{font-family:var(--display);font-weight:800;font-size:2.1rem;letter-spacing:.02em;line-height:1;display:flex;align-items:stretch;gap:6px}
+.logo b{background:var(--gold);color:#16202C;padding:2px 8px 0;border-radius:3px}
+.tagline{font-size:.9rem;opacity:.85;margin-right:auto}
+.iconbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:7px 12px;font-weight:600}
+.iconbtn:hover{background:rgba(255,255,255,.2)}
+.tabs{display:flex;gap:4px}
+.tab{background:none;border:0;color:#fff;opacity:.7;font-family:var(--display);font-size:1.25rem;font-weight:700;padding:8px 14px 10px;border-bottom:4px solid transparent}
+.tab[aria-selected="true"]{opacity:1;border-bottom-color:var(--gold)}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 0}
+.seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:3px}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:6px;font-weight:600;font-size:.9rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+select.sel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-weight:600}
+.primary{background:var(--gold);color:#16202C;border:0;border-radius:8px;padding:8px 16px;font-weight:700}
+.primary:disabled{opacity:.6;cursor:wait}
+.meta{font-size:.85rem;color:var(--muted);margin-left:auto}
+
+.day{font-family:var(--display);font-weight:700;font-size:1.35rem;margin:22px 0 8px;text-transform:capitalize}
+.game{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.ghead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:12px 14px 8px}
+.teams{font-family:var(--display);font-weight:700;font-size:1.3rem;line-height:1.15}
+.teams span{color:var(--muted);font-weight:500;padding:0 4px}
+.kick{font-size:.9rem;color:var(--muted)}
+.league{font-size:.8rem;font-weight:600;background:var(--chip);border-radius:4px;padding:1px 7px}
+.status{font-size:.8rem;font-weight:700;color:var(--down)}
+.gactions{margin-left:auto;display:flex;gap:6px}
+.link{background:none;border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:.8rem;font-weight:600;color:var(--brand)}
+.link:hover{background:var(--soft)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 12px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:.8rem;font-weight:600;color:var(--muted);background:var(--soft);vertical-align:bottom}
+thead th small{display:block;font-weight:400;font-size:.75rem}
+tr.mk td{background:var(--soft);font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--brand);padding-top:5px;padding-bottom:5px}
+td.name{font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.odd{font-family:var(--display);font-size:1.15rem;font-weight:600}
+.pt{font-size:.8rem;color:var(--muted);margin-right:6px}
+.empty{color:var(--line);font-family:var(--display);font-size:1.1rem}
+td.chg{font-size:.85rem;font-weight:600}
+td.chg.up{color:var(--up)} td.chg.down{color:var(--down)} td.chg.flat{color:var(--muted)}
+.pub{flex-basis:100%;font-size:.85rem;color:var(--muted)}
+.pub b{color:var(--ink);font-weight:600}
+.pub.wait b{color:var(--gold)}
+.status.live{color:var(--down);display:inline-flex;align-items:center;gap:5px}
+.status.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--down);animation:pulse 1.6s infinite}
+.status.done{color:var(--muted)}
+th.livecol{color:var(--down)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.status.live::before{animation:none}}
+.sc{font-family:var(--display);font-size:1.7rem;font-weight:800;color:var(--brand);padding:0 6px}
+.books{border-top:1px solid var(--line)}
+.books summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:.9rem;color:var(--brand)}
+.books table{min-width:640px}
+.books td.best{background:var(--soft)}
+.books td.best .odd{color:var(--up);font-weight:700}
+.tag{font-size:.72rem;font-weight:700;color:var(--gold);margin-left:6px}
+.dlg input.ladder{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);margin-top:4px}
+
+.notice{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:8px;padding:18px 20px;margin:20px 0;max-width:70ch}
+.notice h2{font-family:var(--display);margin:0 0 6px;font-size:1.4rem}
+.notice p{margin:6px 0;color:var(--muted)}
+.legend{font-size:.85rem;color:var(--muted);margin:26px 0 40px;max-width:75ch}
+
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:0;width:min(560px,94vw);max-height:90vh}
+dialog::backdrop{background:rgba(10,16,24,.55)}
+.dlg{padding:20px 22px}
+.dlg h2{font-family:var(--display);margin:0 0 12px;font-size:1.6rem}
+.dlg label{display:block;font-weight:600;margin:14px 0 4px}
+.dlg input[type=text],.dlg input[type=password]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+.dlg .hint{font-size:.85rem;color:var(--muted);margin:4px 0}
+.dlg a{color:var(--brand)}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 12px}
+.checks label{font-weight:500;margin:0;display:flex;gap:8px;align-items:center}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ghost{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-weight:600}
+.danger{color:var(--down)}
+.dlgfoot{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--line);background:var(--soft)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;max-width:90vw;display:none;z-index:10}
+@media (max-width:600px){.logo{font-size:1.7rem}.tagline{display:none}.meta{margin-left:0;width:100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.langseg{display:inline-flex;border:1px solid rgba(255,255,255,.3);border-radius:6px;overflow:hidden}
+.langseg button{background:none;border:0;color:#fff;opacity:.7;padding:6px 10px;font-weight:700;font-size:.85rem}
+.langseg button[aria-pressed="true"]{background:var(--gold);color:#16202C;opacity:1}
+
+.login{position:fixed;inset:0;background:var(--brand);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.login.show{display:flex}
+.login form{background:var(--surface);color:var(--ink);border-radius:14px;padding:26px 24px;width:min(380px,100%)}
+.login .logo{color:var(--ink);font-size:2rem;margin-bottom:6px}
+.login label{display:block;font-weight:600;margin:14px 0 4px}
+.login input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-size:1rem}
+.login button{width:100%;margin-top:18px;padding:12px}
+.login .err{color:var(--down);font-weight:600;min-height:1.4em;margin:10px 0 0}
+.credtable{width:100%;min-width:0;font-size:.9rem}
+.credtable td,.credtable th{padding:5px 8px}
+.num{width:120px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+.warnline{color:var(--down);font-weight:600}
+.langseg{display:inline-flex;border:1px solid rgba(255,255,255,.3);border-radius:6px;overflow:hidden}
+.langseg button{background:none;border:0;color:#fff;opacity:.7;padding:6px 10px;font-weight:700;font-size:.85rem}
+.langseg button[aria-pressed="true"]{background:var(--gold);color:#16202C;opacity:1}
+body{overflow-x:hidden}
+.day{text-transform:none}
+.day::first-letter{text-transform:uppercase}
+.seg{max-width:100%;overflow-x:auto}
+.seg button{white-space:nowrap}
+.tabs{overflow-x:auto}
+.tab{white-space:nowrap}
+@media (max-width:640px){
+  .bar{gap:8px;flex-wrap:nowrap;padding:10px 0 6px}
+  .logo{font-size:1.3rem;margin-right:auto}
+  .langseg button{padding:5px 8px}
+  .iconbtn{padding:4px 10px;font-size:0}
+  .iconbtn::before{content:'⚙';font-size:1.2rem}
+  .tab{font-size:1.05rem;padding:8px 10px 9px}
+  .controls{gap:8px;padding:10px 0}
+  .seg button{padding:5px 9px}
+  .ghead{padding:10px 12px 6px}
+  .teams{font-size:1.15rem}
+  .sc{font-size:1.4rem;padding:0 4px}
+  .gactions{margin-left:0;width:100%}
+  .game table{min-width:0;font-size:.85rem}
+  .game > .scroll > table{table-layout:fixed;width:100%}
+  .game > .scroll > table th:nth-child(1){width:23%}
+  .game > .scroll > table th:nth-child(2),.game > .scroll > table th:nth-child(3),.game > .scroll > table th:nth-child(4){width:21%}
+  .game > .scroll > table th:nth-child(5){width:14%}
+  .game > .scroll > table td,.game > .scroll > table th{overflow-wrap:anywhere}
+  .game .books table{min-width:520px}
+  th,td{padding:5px 4px}
+  th:first-child,td:first-child{padding-left:10px}
+  td.name{max-width:26vw;white-space:normal;line-height:1.2;font-size:.8rem}
+  .odd{font-size:1rem}
+  .pt{margin-right:3px;font-size:.72rem}
+  td.chg{white-space:normal;font-size:.64rem;line-height:1.25}
+  thead th small{font-size:.66rem;white-space:normal}
+  .day{font-size:1.2rem;margin:16px 0 6px}
+}
+</style>
+</head>
+<body>
+<div class="login" id="login">
+  <form id="loginForm" autocomplete="on">
+    <div class="logo">SAMGERS <b>ODDS</b></div>
+    <p class="hint" data-i18n="loginTitle"></p>
+    <label for="lUser" data-i18n="user"></label>
+    <input id="lUser" name="username" autocomplete="username" autocapitalize="none" required>
+    <label for="lPass" data-i18n="pass"></label>
+    <input id="lPass" name="password" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit" data-i18n="loginBtn"></button>
+    <p class="err" id="lErr" role="alert"></p>
+  </form>
+</div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <div class="logo">SAMGERS <b>ODDS</b></div>
+      <div class="tagline" data-i18n="tagline"></div>
+      <div class="langseg" id="langSeg" role="group" aria-label="Idioma / Language">
+        <button data-l="es">ES</button><button data-l="en">EN</button>
+      </div>
+      <button class="iconbtn" id="btnSettings" data-i18n="settings"></button>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="nfl">NFL</button>
+      <button class="tab" role="tab" data-tab="ncaaf">NCAAF</button>
+      <button class="tab" role="tab" data-tab="nba">NBA</button>
+      <button class="tab" role="tab" data-tab="soc" data-i18n="tabSoc"></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="controls">
+    <button class="primary" id="btnRefresh" data-i18n="refresh"></button>
+    <select class="sel" id="leagueSel" hidden></select>
+    <div class="seg" id="mktSeg">
+      <button data-m="all" data-i18n="mkAll"></button><button data-m="h2h">Moneyline</button><button data-m="spreads" data-i18n="mkSpreads"></button><button data-m="totals" data-i18n="mkTotals"></button><button data-m="btts" id="bttsChip">BTTS</button>
+    </div>
+    <div class="seg" id="viewSeg">
+      <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button>
+    </div>
+    <div class="seg" id="fmtSeg">
+      <button data-f="american" data-i18n="fmtAm"></button><button data-f="decimal">Decimal</button>
+    </div>
+    <div class="meta" id="meta"></div>
+  </div>
+  <div id="list"></div>
+  <p class="legend" data-i18n="legend"></p>
+</main>
+
+<dialog id="dlgSettings">
+  <div class="dlg">
+    <h2 data-i18n="settings"></h2>
+    <p class="hint" data-i18n="serverNote"></p>
+
+    <label data-i18n="creditsTitle"></label>
+    <div id="credits"></div>
+
+    <label data-i18n="sportsTitle"></label>
+    <div class="checks">
+      <label><input type="checkbox" id="s_nfl"> NFL</label><label><input type="checkbox" id="s_ncaaf"> NCAAF</label><label><input type="checkbox" id="s_nba"> NBA</label>
+      <label><input type="checkbox" id="s_soc"> <span data-i18n="wSoc"></span></label>
+    </div>
+    <label style="font-weight:500"><span data-i18n="watchLabel"></span>
+      <select class="sel" id="watchMin"><option value="30">30 min</option><option value="60" data-i18n="optHour"></option><option value="120" data-i18n="opt2h"></option></select></label>
+    <p class="hint" data-i18n="watchHint"></p>
+
+    <label data-i18n="leaguesTitle"></label>
+    <div class="checks" id="leagueChecks"></div>
+
+    <label data-i18n="liveTitle"></label>
+    <label style="font-weight:500;margin-top:0"><span data-i18n="liveLabel"></span>
+      <select class="sel" id="liveSec"><option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option></select></label>
+    <p class="hint" data-i18n="liveHint"></p>
+    <label for="dailyCap" data-i18n="capTitle"></label>
+    <input class="num" id="dailyCap" type="number" min="0" step="100" inputmode="numeric">
+    <p class="hint" data-i18n="capHint"></p>
+
+    <label data-i18n="booksTitle"></label>
+    <div class="checks" id="bookChecks"></div>
+    <p class="hint" data-i18n="booksHint"></p>
+
+    <label data-i18n="extrasTitle"></label>
+    <div class="checks" style="grid-template-columns:1fr">
+      <label><input type="checkbox" id="xSoc"> <span data-i18n="xSoc"></span></label>
+    </div>
+    <p class="hint" data-i18n="ladderHint"></p>
+    <input class="ladder" id="ladSoc" type="text" inputmode="decimal">
+
+    <label data-i18n="installTitle"></label>
+    <p class="hint" data-i18n="installP"></p>
+    <div class="row"><button class="ghost danger" id="btnLogout" type="button" data-i18n="logout"></button></div>
+  </div>
+  <div class="dlgfoot">
+    <button class="ghost" id="btnCancel" type="button" data-i18n="cancel"></button>
+    <button class="primary" id="btnSave" data-i18n="save"></button>
+  </div>
+</dialog>
+<div id="toast" role="status"></div>
+<script>
+const LSK = 'samgers_client_v1';
+let S = { lang: (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'es', fmt: 'american' };
+let ui = { tab: 'nfl', league: 'all', mkt: 'all', view: 'up' };
+try { const s = JSON.parse(localStorage.getItem(LSK)); if (s) { Object.assign(S, s.S || {}); Object.assign(ui, s.ui || {}); } } catch (e) {}
+const saveLocal = () => { try { localStorage.setItem(LSK, JSON.stringify({ S, ui })); } catch (e) {} };
+
+const I18N = {
+es: {
+  tagline:'Líneas de FanDuel: apertura, día antes y día del partido', settings:'Ajustes', tabSoc:'Fútbol europeo',
+  refresh:'Actualizar cuotas', refreshing:'Actualizando…', extrasBusy:'Mercados extra…',
+  mkAll:'Todos', mkSpreads:'Handicap', mkTotals:'Totales', viewUp:'Próximos y en vivo', viewPast:'Terminados', fmtAm:'Americana',
+  legend:'Cada partido tiene tres líneas. Apertura: la cuota del primer día en que FanDuel publica el partido; la app lo vigila cada hora y guarda la hora en que lo detectó (“Buscar apertura” afina la hora exacta con el histórico). Día antes: la última cuota del día anterior al partido. Día del partido: la cuota actual, que se actualiza sola mientras tengas la app abierta, antes del inicio y en vivo durante el partido. Mov. compara la apertura con la cuota más reciente: ▲ el pago subió, ▼ el pago bajó (más dinero entrando a ese lado).',
+  apiKey:'Clave de The Odds API', apiKeyPh:'Pega tu clave aquí', test:'Probar conexión',
+  apiHint:'Las cuotas llegan a través de <a href="https://the-odds-api.com" target="_blank" rel="noopener">the-odds-api.com</a>. El plan gratis da 500 créditos al mes; cada “Actualizar” cuesta 3 créditos por liga. Rellenar desde el histórico requiere un plan pagado (10 créditos por mercado en cada lectura).',
+  liveTitle:'Cuotas en vivo el día del partido', liveLabel:'Actualizar la línea del día del partido cada',
+  liveHint:'Solo corre con la app a la vista y cuando la pestaña que miras tiene partidos hoy. Cuesta 3 créditos por liga en cada actualización; BTTS y líneas de goles se refrescan cada 10 minutos (2 créditos por partido). El marcador en vivo cuesta 2 créditos por liga en cada actualización mientras haya partidos jugándose.',
+  booksTitle:'Casas de apuestas a comparar el día del partido', booksHint:'FanDuel siempre se incluye. Hasta 10 casas cuestan lo mismo que una sola.',
+  watchTitle:'Vigilar publicaciones de FanDuel', watchLabel:'Revisar si FanDuel publicó partidos nuevos cada', optHour:'hora', opt2h:'2 horas', wSoc:'Fútbol (tus ligas)',
+  watchHint:'La lista de partidos se consulta gratis. Solo se gastan créditos cuando FanDuel ya tiene línea: unos 3 por partido para guardar la apertura, y una lectura cada 3 horas el día antes y el día del partido. La vigilancia funciona mientras la app esté abierta en una computadora encendida (puede estar en otra pestaña).',
+  leaguesTitle:'Ligas de fútbol que sigues', extrasTitle:'Mercados extra', xSoc:'Fútbol: BTTS y líneas de goles', ladderHint:'Líneas de goles a mostrar (separadas por coma)',
+  extrasHint:'Los mercados extra se piden partido por partido: unos 2 créditos por partido de fútbol en cada lectura. Para ahorrar, se vuelven a pedir como máximo cada 3 horas el día antes y el día del partido. La línea principal siempre aparece aunque no esté en tu lista.',
+  autoRef:'Actualizar sola cada 30 minutos mientras la app está abierta', dataTitle:'Datos', csv:'Exportar CSV', backup:'Descargar respaldo', restore:'Restaurar respaldo', clear:'Borrar historial', save:'Guardar',
+  saveFail:'No se pudo guardar en el navegador: {m}',
+  netEmb:'Sin conexión: la vista previa de Claude bloquea internet. Descarga el archivo y ábrelo en Chrome.',
+  net:'Sin conexión con The Odds API. Revisa el internet, o desactiva el bloqueador de anuncios o el antivirus para the-odds-api.com.',
+  e401:'La clave de API no es válida o este plan no incluye esa función.', e429:'Se acabaron los créditos o hiciste demasiadas consultas seguidas.', e422:'La liga no está disponible ahora (quizá fuera de temporada).',
+  pickLeague:'Elige al menos una liga en Ajustes.', updated:'Cuotas actualizadas', liveErr:'En vivo: ',
+  newPub:'FanDuel publicó {n} partido(s) nuevo(s). Apertura guardada.', filled:'Se rellenó la línea del día antes desde el histórico.', noGaps:'No hay huecos que se puedan rellenar todavía.', histErr:'Histórico: ',
+  confirmOpen:'Buscar la hora exacta en que FanDuel publicó la línea usa el histórico (plan pagado) y cuesta unos 150 créditos. ¿Continuar?',
+  searching:'Buscando la hora de publicación…', noHist:'El histórico todavía no muestra línea de FanDuel para este partido.', noReadAt:'No se pudo leer la línea en esa hora.',
+  openFound:'FanDuel la publicó cerca de {t}', openOld:'Ya estaba publicada hace 14 días; se guardó la línea de {t}',
+  line:'línea', noChange:'sin cambio', draw:'Empate', yes:'Sí, ambos anotan', no:'No, al menos uno no anota', over:'Más de', under:'Menos de',
+  mkH2hSoc:'Moneyline (1X2)', mkSpreadSoc:'Handicap', mkSpreadUS:'Handicap (spread)', mkBtts:'Ambos anotan (BTTS)', mkGoals:'Línea de goles', mkPoints:'Total de puntos',
+  notYet:'FanDuel aún no publica este partido', checked:'revisado', pubBetween:'FanDuel lo publicó entre <b>{a}</b> y <b>{b}</b>', histTag:' (histórico)',
+  pubSeen:'Ya estaba publicado cuando la app lo vio por primera vez ({t}). Usa “Buscar apertura” para la hora exacta.',
+  booksLive:'Cuotas en vivo por casa de apuestas', booksFinal:'Cuotas finales por casa de apuestas', booksNow:'Cuotas actuales por casa de apuestas', market:'Mercado',
+  subLive:'en vivo', subLastLive:'última en vivo', subNow:'actual', waiting:'esperando lectura', activates:'se activa el día del partido',
+  colOpen:'Apertura', colBefore:'Día antes', colGame:'Día del partido', colMov:'Mov.', noReading:'sin lectura', histShort:'hist.',
+  noOdds:'FanDuel todavía no publica cuotas para este partido', inMarket:' en este mercado', main:'principal',
+  final:'Final', finished:'Terminado', live:'En vivo', started:'Iniciado',
+  fill:'Rellenar día antes', fillTitle:'Traer del histórico la línea del día antes si falta', findOpen:'Buscar apertura', findTitle:'Buscar la hora exacta de publicación en el histórico',
+  allLeagues:'Todas mis ligas', lastUpd:'Última actualización: {t}', never:'Sin actualizar todavía', liveEvery:' · En vivo: cada {x}', watchEvery:' · Vigilando FanDuel cada {m} min', lastW:' (última: {t})', credits:' · Créditos restantes: {n}',
+  embTitle:'Abre la app fuera de Claude', embP1:'Estás viendo SAMGERS ODDS dentro de la vista previa de Claude, y ahí no se permite conectarse a internet. Por eso sale “Failed to fetch”.', embP2:'Descarga el archivo samgers-odds.html y ábrelo con doble clic en Chrome, Edge o Safari. Tu clave y tus datos se guardan en ese navegador.',
+  connTitle:'Conecta tu fuente de cuotas', connP:'SAMGERS ODDS lee las líneas de FanDuel a través de The Odds API. Crea una cuenta gratis en the-odds-api.com, copia tu clave y pégala en Ajustes.', openSettings:'Abrir ajustes',
+  noGames:'No hay partidos cargados', noPast:'Aún no hay partidos terminados', noGamesP:'Pulsa “Actualizar cuotas” para traer los partidos que FanDuel tiene publicados. Desde ese momento la app guarda la apertura.', noPastP:'Aquí verás los partidos terminados, con sus tres líneas guardadas durante 14 días.',
+  testNeedKey:'Primero pega tu clave.', testing:'Probando…', testOk:'Conexión correcta: {n} deportes disponibles', testCredits:', {n} créditos restantes.',
+  restored:'Respaldo restaurado', badBackup:'Ese archivo no es un respaldo de SAMGERS ODDS.', confirmClear:'¿Borrar todas las cuotas guardadas?', cleared:'Historial borrado',
+  csvHead:'deporte,liga,partido,inicio,mercado,seleccion,apertura_linea,apertura_cuota,apertura_hora,dia_antes_linea,dia_antes_cuota,dia_antes_hora,dia_partido_linea,dia_partido_cuota,dia_partido_hora',
+  backupName:'samgers-odds-respaldo.json'
+},
+en: {
+  tagline:'FanDuel lines: opening, day before and game day', settings:'Settings', tabSoc:'European soccer',
+  refresh:'Update odds', refreshing:'Updating…', extrasBusy:'Extra markets…',
+  mkAll:'All', mkSpreads:'Spread', mkTotals:'Totals', viewUp:'Upcoming & live', viewPast:'Finished', fmtAm:'American',
+  legend:'Each game has three lines. Opening: the odds from the first day FanDuel posts the game; the app checks every hour and saves the time it detected it (“Find opening” pinpoints the exact time using history). Day before: the last odds of the day before the game. Game day: the current odds, updating on their own while the app is open, before kickoff and live during the game. Move compares the opening with the latest odds: ▲ the payout went up, ▼ the payout went down (more money coming in on that side).',
+  apiKey:'The Odds API key', apiKeyPh:'Paste your key here', test:'Test connection',
+  apiHint:'Odds come from <a href="https://the-odds-api.com" target="_blank" rel="noopener">the-odds-api.com</a>. The free plan gives 500 credits a month; each “Update” costs 3 credits per league. Filling from history requires a paid plan (10 credits per market per read).',
+  liveTitle:'Live odds on game day', liveLabel:'Update the game-day line every',
+  liveHint:'Only runs while the app is on screen and the tab you are viewing has games today. Each update costs 3 credits per league; BTTS and goal lines refresh every 10 minutes (2 credits per game). The live score costs 2 credits per league per update while games are being played.',
+  booksTitle:'Sportsbooks to compare on game day', booksHint:'FanDuel is always included. Up to 10 books cost the same as one.',
+  watchTitle:'Watch for new FanDuel lines', watchLabel:'Check whether FanDuel posted new games every', optHour:'hour', opt2h:'2 hours', wSoc:'Soccer (your leagues)',
+  watchHint:'The game list is free to check. Credits are only spent once FanDuel has a line: about 3 per game to save the opening, and one read every 3 hours on the day before and on game day. Watching works while the app is open on a computer that stays on (it can be in another tab).',
+  leaguesTitle:'Soccer leagues you follow', extrasTitle:'Extra markets', xSoc:'Soccer: BTTS and goal lines', ladderHint:'Goal lines to show (comma separated)',
+  extrasHint:'Extra markets are requested game by game: about 2 credits per soccer game per read. To save credits, they are refreshed at most every 3 hours on the day before and on game day. The main line always shows even if it is not on your list.',
+  autoRef:'Update automatically every 30 minutes while the app is open', dataTitle:'Data', csv:'Export CSV', backup:'Download backup', restore:'Restore backup', clear:'Clear history', save:'Save',
+  saveFail:'Could not save in the browser: {m}',
+  netEmb:'No connection: the Claude preview blocks the internet. Download the file and open it in Chrome.',
+  net:'No connection to The Odds API. Check your internet, or turn off the ad blocker or antivirus for the-odds-api.com.',
+  e401:'The API key is not valid or this plan does not include that feature.', e429:'You ran out of credits or made too many requests in a row.', e422:'This league is not available right now (maybe off-season).',
+  pickLeague:'Pick at least one league in Settings.', updated:'Odds updated', liveErr:'Live: ',
+  newPub:'FanDuel posted {n} new game(s). Opening line saved.', filled:'Day-before line filled from history.', noGaps:'Nothing to fill yet.', histErr:'History: ',
+  confirmOpen:'Finding the exact time FanDuel posted the line uses history (paid plan) and costs about 150 credits. Continue?',
+  searching:'Searching for the posting time…', noHist:'History does not show a FanDuel line for this game yet.', noReadAt:'Could not read the line at that time.',
+  openFound:'FanDuel posted it around {t}', openOld:'It was already posted 14 days ago; saved the line from {t}',
+  line:'line', noChange:'no change', draw:'Draw', yes:'Yes, both teams score', no:'No, at least one does not score', over:'Over', under:'Under',
+  mkH2hSoc:'Moneyline (1X2)', mkSpreadSoc:'Handicap', mkSpreadUS:'Spread', mkBtts:'Both teams to score (BTTS)', mkGoals:'Goal line', mkPoints:'Total points',
+  notYet:'FanDuel has not posted this game yet', checked:'checked', pubBetween:'FanDuel posted it between <b>{a}</b> and <b>{b}</b>', histTag:' (history)',
+  pubSeen:'It was already posted when the app first saw it ({t}). Use “Find opening” for the exact time.',
+  booksLive:'Live odds by sportsbook', booksFinal:'Final odds by sportsbook', booksNow:'Current odds by sportsbook', market:'Market',
+  subLive:'live', subLastLive:'last live', subNow:'current', waiting:'waiting for first read', activates:'starts on game day',
+  colOpen:'Opening', colBefore:'Day before', colGame:'Game day', colMov:'Move', noReading:'no reading', histShort:'hist.',
+  noOdds:'FanDuel has not posted odds for this game yet', inMarket:' in this market', main:'main',
+  final:'Final', finished:'Finished', live:'Live', started:'Started',
+  fill:'Fill day before', fillTitle:'Get the day-before line from history if it is missing', findOpen:'Find opening', findTitle:'Find the exact posting time in history',
+  allLeagues:'All my leagues', lastUpd:'Last update: {t}', never:'Not updated yet', liveEvery:' · Live: every {x}', watchEvery:' · Watching FanDuel every {m} min', lastW:' (last: {t})', credits:' · Credits left: {n}',
+  embTitle:'Open the app outside Claude', embP1:'You are viewing SAMGERS ODDS inside the Claude preview, which does not allow internet connections. That is why you see “Failed to fetch”.', embP2:'Download samgers-odds.html and double-click it to open it in Chrome, Edge or Safari. Your key and data are saved in that browser.',
+  connTitle:'Connect your odds source', connP:'SAMGERS ODDS reads FanDuel lines through The Odds API. Create a free account at the-odds-api.com, copy your key and paste it in Settings.', openSettings:'Open settings',
+  noGames:'No games loaded', noPast:'No finished games yet', noGamesP:'Press “Update odds” to load the games FanDuel has posted. From then on the app saves the opening line.', noPastP:'Finished games show up here, with their three lines saved for 14 days.',
+  testNeedKey:'Paste your key first.', testing:'Testing…', testOk:'Connection OK: {n} sports available', testCredits:', {n} credits left.',
+  restored:'Backup restored', badBackup:'That file is not a SAMGERS ODDS backup.', confirmClear:'Delete all saved odds?', cleared:'History cleared',
+  csvHead:'sport,league,game,kickoff,market,selection,opening_line,opening_odds,opening_time,day_before_line,day_before_odds,day_before_time,game_day_line,game_day_odds,game_day_time',
+  backupName:'samgers-odds-backup.json'
+}};
+
+Object.assign(I18N.es, {
+  refresh:'Actualizar ahora', loginTitle:'Entra con tu usuario', user:'Usuario', pass:'Contraseña', loginBtn:'Entrar',
+  loginBad:'Usuario o contraseña incorrectos.', loginMany:'Demasiados intentos. Espera un minuto.', logout:'Cerrar sesión',
+  serverNote:'Estos ajustes se guardan en el servidor y aplican para los dos usuarios.',
+  capTitle:'Tope diario para el en vivo (créditos en 24 horas)',
+  capHint:'Si en las últimas 24 horas se gastan más créditos que este número, el en vivo se pausa solo. La vigilancia, el día antes y el cierre siguen funcionando.',
+  creditsTitle:'Créditos', creditsLine:'{r} restantes · {u} usados en las últimas 24 horas', creditsNone:'Todavía no hay consumo en las últimas 24 horas.',
+  capHitMsg:' · En vivo en pausa: se alcanzó el tope diario', sportOff:'Este deporte está apagado', sportOffP:'Actívalo en Ajustes para que el servidor lo vigile.',
+  installTitle:'Instalar en el celular', installP:'iPhone: abre esta página en Safari, toca Compartir y luego “Agregar a pantalla de inicio”. Android: ábrela en Chrome, toca el menú ⋮ y luego “Instalar app”.',
+  serverUpd:'Servidor actualizado: {t}', liveOnMeta:' · En vivo activo', saved:'Ajustes guardados', sportsTitle:'Deportes que vigila el servidor',
+  liveLabel:'Actualizar el en vivo cada ', watchLabel:'Revisar si FanDuel publicó partidos nuevos cada ',
+  liveHint:'El en vivo solo corre mientras uno de los dos tenga la app abierta en pantalla, y solo para ligas con partidos hoy. Cuesta 3 créditos por liga en cada actualización, más 2 del marcador cuando hay partidos jugándose. BTTS y líneas de goles se refrescan cada 10 minutos (2 créditos por partido).',
+  watchHint:'Consultar la lista de partidos es gratis. El servidor solo gasta créditos cuando aparecen partidos sin apertura: 3 créditos por liga, más 2 por partido de fútbol para BTTS y goles. También guarda el día antes a las 6:00 pm y 11:50 pm, y la cuota de cierre justo antes de cada partido, aunque nadie tenga la app abierta.',
+  legend:'Cada partido tiene tres líneas. Apertura: la cuota del primer día en que FanDuel publica el partido; el servidor lo vigila todo el día y guarda la hora en que lo detectó (“Buscar apertura” afina la hora exacta con el histórico). Día antes: la última cuota del día anterior al partido, guardada a las 11:50 pm. Día del partido: la cuota actual, antes del inicio y en vivo durante el partido. Mov. compara la apertura con la cuota más reciente: ▲ el pago subió, ▼ el pago bajó (más dinero entrando a ese lado).',
+  noGamesP:'El servidor todavía no tiene partidos de FanDuel para esta pestaña. Aparecerán solos en cuanto FanDuel los publique.',
+  'k_vigilancia':'Vigilancia', 'k_apertura':'Aperturas', 'k_apertura-extras':'Aperturas (BTTS y goles)', 'k_dia-antes':'Día antes', 'k_dia-antes-extras':'Día antes (BTTS y goles)',
+  'k_cierre':'Cierre', 'k_marcador':'Marcador', 'k_en-vivo':'En vivo', 'k_en-vivo-extras':'En vivo (BTTS y goles)', 'k_historico':'Histórico', 'k_other':'Otros',
+  errPrefix:'Error: ', net:'Sin conexión con el servidor. Revisa el internet.'
+});
+Object.assign(I18N.en, {
+  refresh:'Update now', loginTitle:'Sign in with your user', user:'User', pass:'Password', loginBtn:'Sign in',
+  loginBad:'Wrong user or password.', loginMany:'Too many attempts. Wait a minute.', logout:'Sign out',
+  serverNote:'These settings are saved on the server and apply to both users.',
+  capTitle:'Daily cap for live updates (credits in 24 hours)',
+  capHint:'If more credits than this are spent in the last 24 hours, live updates pause on their own. Watching, day-before and closing reads keep working.',
+  creditsTitle:'Credits', creditsLine:'{r} left · {u} used in the last 24 hours', creditsNone:'No usage in the last 24 hours yet.',
+  capHitMsg:' · Live paused: daily cap reached', sportOff:'This sport is turned off', sportOffP:'Turn it on in Settings so the server watches it.',
+  installTitle:'Install on your phone', installP:'iPhone: open this page in Safari, tap Share, then “Add to Home Screen”. Android: open it in Chrome, tap the ⋮ menu, then “Install app”.',
+  serverUpd:'Server updated: {t}', liveOnMeta:' · Live on', saved:'Settings saved', sportsTitle:'Sports the server watches',
+  liveLabel:'Update live odds every ', watchLabel:'Check whether FanDuel posted new games every ',
+  liveHint:'Live updates only run while one of you has the app open on screen, and only for leagues with games today. Each update costs 3 credits per league, plus 2 for the score while games are being played. BTTS and goal lines refresh every 10 minutes (2 credits per game).',
+  watchHint:'Checking the game list is free. The server only spends credits when games without an opening line appear: 3 credits per league, plus 2 per soccer game for BTTS and goal lines. It also saves the day-before line at 6:00 pm and 11:50 pm, and the closing odds right before each game, even when nobody has the app open.',
+  legend:'Each game has three lines. Opening: the odds from the first day FanDuel posts the game; the server watches all day and saves the time it detected it (“Find opening” pinpoints the exact time using history). Day before: the last odds of the day before the game, saved at 11:50 pm. Game day: the current odds, before kickoff and live during the game. Move compares the opening with the latest odds: ▲ the payout went up, ▼ the payout went down (more money coming in on that side).',
+  noGamesP:'The server has no FanDuel games for this tab yet. They will show up on their own as soon as FanDuel posts them.',
+  'k_vigilancia':'Watch', 'k_apertura':'Openings', 'k_apertura-extras':'Openings (BTTS and goals)', 'k_dia-antes':'Day before', 'k_dia-antes-extras':'Day before (BTTS and goals)',
+  'k_cierre':'Closing', 'k_marcador':'Scores', 'k_en-vivo':'Live', 'k_en-vivo-extras':'Live (BTTS and goals)', 'k_historico':'History', 'k_other':'Other',
+  errPrefix:'Error: ', net:'No connection to the server. Check your internet.'
+});
+
+Object.assign(I18N.es, { cancel: 'Cancelar' });
+Object.assign(I18N.en, { cancel: 'Cancel' });
+function t(k, v){ let s = (I18N[S.lang] || I18N.es)[k] ?? I18N.es[k] ?? k; if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]); return s; }
+const loc = () => S.lang === 'en' ? 'en-US' : 'es-PA';
+function applyStatic(){
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('#langSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === S.lang));
+}
+
+let USER = null, CFG = null, SPORTS = {}, BOOKS = {}, TZ = 'America/Panama', EV = [], ST = null, busy = false;
+const DAY = 864e5;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dayKey = ts => new Date(ts).toLocaleDateString('en-CA', { timeZone: TZ });
+const fmtTime = ts => new Date(ts).toLocaleString(loc(), { timeZone: TZ, weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtKick = ts => new Date(ts).toLocaleTimeString(loc(), { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
+function tabOf(k){ for (const tb in SPORTS) if (SPORTS[tb].some(l => l.k === k)) return tb; return 'soc'; }
+function leagueName(k){ for (const tb in SPORTS) for (const l of SPORTS[tb]) if (l.k === k) return l.n; return k; }
+function toast(msg, ms = 4200){ const el = document.getElementById('toast'); el.textContent = msg; el.style.display = 'block'; clearTimeout(el._h); el._h = setTimeout(() => el.style.display = 'none', ms); }
+
+async function api(path, opts = {}){
+  let r;
+  try { r = await fetch(path, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts }); }
+  catch (e) { throw new Error(t('net')); }
+  if (r.status === 401 && !path.endsWith('/login')) { showLogin(); const e = new Error('auth'); e.auth = true; throw e; }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(I18N.es[j.error] ? t(j.error) : (j.error || 'Error ' + r.status)); e.code = j.error; throw e; }
+  return j;
+}
+
+/* ---------- sesión ---------- */
+function showLogin(){ USER = null; closeStream(); applyStatic(); document.getElementById('login').classList.add('show'); }
+function hideLogin(){ document.getElementById('login').classList.remove('show'); }
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = document.getElementById('lErr'); err.textContent = '';
+  try {
+    await api('/api/login', { method: 'POST', body: JSON.stringify({ user: document.getElementById('lUser').value, pass: document.getElementById('lPass').value }) });
+    document.getElementById('lPass').value = '';
+    boot();
+  } catch (ex) { err.textContent = ex.message; }
+});
+
+async function boot(){
+  try {
+    const me = await api('/api/me');
+    USER = me.user; TZ = me.tz; SPORTS = me.sports; BOOKS = me.books; CFG = me.config;
+    if (!SPORTS[ui.tab]) ui.tab = 'nfl';
+    hideLogin(); render(); await load(); openStream();
+  } catch (e) { if (!e.auth) toast(e.message, 7000); }
+}
+let loadTimer = null;
+async function load(){
+  if (!USER) return;
+  try { const j = await api('/api/events?tab=' + ui.tab); EV = j.events; ST = j.status; render(); }
+  catch (e) { if (!e.auth) toast(e.message, 7000); }
+}
+const loadSoon = () => { clearTimeout(loadTimer); loadTimer = setTimeout(load, 400); };
+let es = null;
+function openStream(){
+  closeStream();
+  if (!USER || document.visibilityState !== 'visible') return;
+  es = new EventSource('/api/stream?tab=' + ui.tab);
+  es.addEventListener('update', loadSoon);
+}
+function closeStream(){ if (es) { es.close(); es = null; } }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { load(); openStream(); } else closeStream(); });
+setInterval(() => { if (USER && document.visibilityState === 'visible') render(); }, 60e3);
+
+/* ---------- formato ---------- */
+function price(d){
+  if (d == null) return null;
+  if (S.fmt === 'decimal') return d.toFixed(2);
+  if (d >= 2) return '+' + Math.round((d - 1) * 100);
+  return String(Math.round(-100 / (d - 1)));
+}
+const point = p => p == null ? '' : (p > 0 ? '+' + p : String(p));
+function val(s, mk, key){
+  if (!s || !s.o) return null;
+  if (mk === 'totals' && key.endsWith('@main')) {
+    const side = key.split('@')[0];
+    return s.o.tmain != null && s.o.totals ? s.o.totals[side + '|' + s.o.tmain] : null;
+  }
+  return s.o[mk] && s.o[mk][key];
+}
+function cell(s, mk, name){
+  const v = val(s, mk, name);
+  if (!v) return '<td><span class="empty">—</span></td>';
+  const showPt = mk === 'spreads' || name.endsWith('@main');
+  const pt = showPt ? `<span class="pt">${esc(mk === 'spreads' ? point(v.pt) : v.pt)}</span>` : '';
+  return `<td>${pt}<span class="odd">${esc(price(v.p))}</span></td>`;
+}
+function change(a, b, mk, name){
+  const x = val(a, mk, name), y = val(b, mk, name);
+  if (!x || !y || a === b) return '<td class="chg flat">—</td>';
+  const parts = [];
+  if (x.pt != null && y.pt != null && x.pt !== y.pt) { const f = mk === 'spreads' ? point : (p => String(p)); parts.push(`${t('line')} ${f(x.pt)} → ${f(y.pt)}`); }
+  let cls = 'flat';
+  if (Math.abs(y.p - x.p) >= 0.005) { cls = y.p > x.p ? 'up' : 'down'; parts.push((y.p > x.p ? '▲ ' : '▼ ') + price(x.p) + ' → ' + price(y.p)); }
+  return `<td class="chg ${cls}">${parts.length ? esc(parts.join(' · ')) : t('noChange')}</td>`;
+}
+function outcomeOrder(E, mk, names){
+  const soccer = tabOf(E.sport) === 'soc';
+  if (mk === 'btts') return ['Yes','No'].filter(n => names.has(n));
+  const order = soccer ? [E.home, 'Draw', E.away] : [E.away, E.home];
+  return order.filter(n => names.has(n)).concat([...names].filter(n => !order.includes(n)));
+}
+const outLabel = n => n === 'Draw' ? t('draw') : n === 'Yes' ? t('yes') : n === 'No' ? t('no') : n;
+function ladderOf(tab){ const txt = (tab === 'soc' && CFG && CFG.ladder) || ''; return txt.split(',').map(x => parseFloat(x)).filter(x => !isNaN(x)); }
+function totalRows(E, snaps){
+  const tab = tabOf(E.sport);
+  if (tab !== 'soc') return snaps.some(s => s && s.o.tmain != null)
+    ? [{key:'Over@main', label:t('over')}, {key:'Under@main', label:t('under')}] : [];
+  const lad = ladderOf(tab), lines = new Set(), mains = new Set();
+  snaps.forEach(s => { if (!s || !s.o.totals) return; if (s.o.tmain != null) mains.add(s.o.tmain);
+    Object.values(s.o.totals).forEach(v => lines.add(v.pt)); });
+  const keep = [...lines].filter(p => mains.has(p) || lad.includes(p)).sort((a,b) => a - b);
+  const rows = [];
+  for (const p of keep) for (const side of ['Over','Under'])
+    rows.push({key: side + '|' + p, label: t(side === 'Over' ? 'over' : 'under') + ' ' + p, main: mains.has(p)});
+  return rows;
+}
+function mkLabel(E, mk){
+  const tb = tabOf(E.sport);
+  if (mk === 'h2h') return tb === 'soc' ? t('mkH2hSoc') : 'Moneyline';
+  if (mk === 'spreads') return t(tb === 'soc' ? 'mkSpreadSoc' : 'mkSpreadUS');
+  if (mk === 'btts') return t('mkBtts');
+  return t(tb === 'soc' ? 'mkGoals' : 'mkPoints');
+}
+
+/* ---------- vista ---------- */
+function pubLine(E){
+  if (!E.snaps.open) return E.live ? '' : `<div class="pub wait"><b>${esc(t('notYet'))}</b>${E.chk ? ' · ' + esc(t('checked')) + ' ' + esc(fmtTime(E.chk)) : ''}</div>`;
+  const p = E.pub;
+  if (p && p.from) return `<div class="pub">${t('pubBetween', {a: esc(fmtTime(p.from)), b: esc(fmtTime(p.at))})}${p.hist ? esc(t('histTag')) : ''}</div>`;
+  return `<div class="pub">${esc(t('pubSeen', {t: fmtTime(E.snaps.open.t)}))}</div>`;
+}
+function booksHTML(E){
+  const B = E.books; if (!B) return '';
+  const keys = Object.keys(BOOKS).filter(k => B.by[k] && (k === 'fanduel' || CFG.books.includes(k)));
+  if (!keys.length) return '';
+  const soccer = tabOf(E.sport) === 'soc';
+  const order = soccer ? [E.home, 'Draw', E.away] : [E.away, E.home];
+  const get = (o, mk, n) => mk === 'totals' ? (o.tmain != null && o.totals ? o.totals[n + '|' + o.tmain] : null) : (o[mk] && o[mk][n]);
+  const mks = (ui.mkt === 'all' ? ['h2h','spreads','totals'] : [ui.mkt]).filter(m => m !== 'btts');
+  let body = '';
+  for (const mk of mks) {
+    const names = (mk === 'totals' ? ['Over','Under'] : order).filter(n => keys.some(k => get(B.by[k], mk, n)));
+    if (!names.length) continue;
+    body += `<tr class="mk"><td colspan="${keys.length + 1}">${esc(mkLabel(E, mk))}</td></tr>`;
+    for (const n of names) {
+      const vals = keys.map(k => get(B.by[k], mk, n));
+      const best = mk === 'h2h' ? Math.max(...vals.filter(Boolean).map(v => v.p)) : null;
+      body += `<tr><td class="name">${esc(mk === 'totals' ? t(n === 'Over' ? 'over' : 'under') : outLabel(n))}</td>` +
+        vals.map(v => !v ? '<td><span class="empty">—</span></td>' :
+          `<td class="${best != null && keys.length > 1 && v.p === best ? 'best' : ''}">${mk !== 'h2h' ? `<span class="pt">${esc(mk === 'spreads' ? point(v.pt) : v.pt)}</span>` : ''}<span class="odd">${esc(price(v.p))}</span></td>`).join('') + '</tr>';
+    }
+  }
+  if (!body) return '';
+  return `<details class="books" ${B.inplay && !E.ended ? 'open' : ''}>
+    <summary>${esc(t(B.inplay && !E.ended ? 'booksLive' : E.ended ? 'booksFinal' : 'booksNow'))} · ${esc(fmtKick(B.t))}</summary>
+    <div class="scroll"><table><thead><tr><th>${esc(t('market'))}</th>${keys.map(k => `<th>${esc(BOOKS[k])}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+  </details>`;
+}
+function liveTh(E, isToday){
+  const L = E.live;
+  let sub;
+  if (L) sub = t(L.inplay && !E.ended ? 'subLive' : E.ended ? 'subLastLive' : 'subNow') + ' · ' + fmtKick(L.t);
+  else sub = t(isToday ? 'waiting' : 'activates');
+  return `<th class="${L && L.inplay && !E.ended ? 'livecol' : ''}">${esc(t('colGame'))}<small>${esc(sub)}</small></th>`;
+}
+function gameHTML(E){
+  const sn = E.snaps, cols = [sn.open, sn.before, E.live];
+  const latest = E.live || sn.before || E.last;
+  const isToday = dayKey(E.c) === dayKey(Date.now());
+  const soccer = tabOf(E.sport) === 'soc';
+  const started = Date.now() >= E.c;
+  const mks = (ui.mkt === 'all' ? ['h2h','spreads','totals','btts'] : [ui.mkt]);
+  let body = '';
+  for (const mk of mks) {
+    let rows;
+    if (mk === 'totals') rows = totalRows(E, [...cols, E.last]);
+    else {
+      const names = new Set();
+      [...cols, E.last].forEach(s => s && s.o[mk] && Object.keys(s.o[mk]).forEach(n => names.add(n)));
+      rows = outcomeOrder(E, mk, names).map(n => ({key:n, label:outLabel(n)}));
+    }
+    if (!rows.length) continue;
+    body += `<tr class="mk"><td colspan="5">${esc(mkLabel(E, mk))}</td></tr>`;
+    for (const r of rows) {
+      body += `<tr><td class="name">${esc(r.label)}${r.main ? `<span class="tag">${esc(t('main'))}</span>` : ''}</td>${cols.map(s => cell(s, mk, r.key)).join('')}${change(sn.open, latest, mk, r.key)}</tr>`;
+    }
+  }
+  if (!body) body = `<tr><td colspan="5" style="text-align:left;color:var(--muted)">${esc(t('noOdds'))}${ui.mkt !== 'all' ? esc(t('inMarket')) : ''}.</td></tr>`;
+  const th = (label, s) => `<th>${esc(label)}<small>${s ? esc(fmtTime(s.t)) + (s.src === 'hist' ? ' · ' + t('histShort') : '') : esc(t('noReading'))}</small></th>`;
+  const sc = E.score && E.score.h != null ? E.score : null;
+  const teams = soccer
+    ? (sc ? `${esc(E.home)}<b class="sc">${esc(sc.h)}</b><span>–</span><b class="sc">${esc(sc.a)}</b>${esc(E.away)}` : `${esc(E.home)}<span>vs</span>${esc(E.away)}`)
+    : (sc ? `${esc(E.away)}<b class="sc">${esc(sc.a)}</b><span>@</span><b class="sc">${esc(sc.h)}</b>${esc(E.home)}` : `${esc(E.away)}<span>@</span>${esc(E.home)}`);
+  return `<article class="game">
+    <div class="ghead">
+      <div class="teams">${teams}</div>
+      <div class="kick">${esc(fmtKick(E.c))}</div>
+      ${soccer ? `<span class="league">${esc(leagueName(E.sport))}</span>` : ''}
+      ${E.ended ? `<span class="status done">${esc(t(sc && sc.done ? 'final' : 'finished'))}</span>` : started ? (E.live && E.live.inplay ? `<span class="status live">${esc(t('live'))}</span>` : `<span class="status">${esc(t('started'))}</span>`) : ''}
+      ${pubLine(E)}
+      <div class="gactions">
+        <button class="link" data-act="fill" data-id="${esc(E.id)}" title="${esc(t('fillTitle'))}">${esc(t('fill'))}</button>
+        <button class="link" data-act="open" data-id="${esc(E.id)}" title="${esc(t('findTitle'))}">${esc(t('findOpen'))}</button>
+      </div>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>${esc(t('market'))}</th>${th(t('colOpen'), sn.open)}${th(t('colBefore'), sn.before)}${liveTh(E, isToday)}<th>${esc(t('colMov'))}</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    ${isToday || started ? booksHTML(E) : ''}
+  </article>`;
+}
+
+function render(){
+  applyStatic();
+  if (!busy) document.getElementById('btnRefresh').textContent = t('refresh');
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
+  document.getElementById('bttsChip').hidden = ui.tab !== 'soc';
+  if (ui.mkt === 'btts' && ui.tab !== 'soc') ui.mkt = 'all';
+  document.querySelectorAll('#mktSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ui.mkt));
+  document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.view));
+  document.querySelectorAll('#fmtSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === S.fmt));
+  if (!CFG) return;
+
+  const sel = document.getElementById('leagueSel');
+  sel.hidden = ui.tab !== 'soc';
+  if (ui.tab === 'soc') {
+    const on = SPORTS.soc.filter(l => CFG.leagues.includes(l.k));
+    if (ui.league !== 'all' && !on.some(l => l.k === ui.league)) ui.league = 'all';
+    sel.innerHTML = `<option value="all">${esc(t('allLeagues'))}</option>` + on.map(l => `<option value="${l.k}">${esc(l.n)}</option>`).join('');
+    sel.value = ui.league;
+  }
+
+  const now = Date.now();
+  const lastRun = ST ? Math.max(0, ...Object.values(ST.lastRun || {})) : 0;
+  const liveNow = EV.some(E => !E.ended && ((E.c > now && dayKey(E.c) === dayKey(now)) || (E.c <= now && now - E.c < 5 * 3600e3)));
+  document.getElementById('meta').innerHTML =
+    esc(lastRun ? t('serverUpd', { t: fmtTime(lastRun) }) : t('never')) +
+    (liveNow && ST && !ST.capHit ? esc(t('liveOnMeta')) : '') +
+    (ST && ST.remaining != null ? esc(t('credits', { n: ST.remaining })) : '') +
+    (ST && ST.capHit ? `<span class="warnline">${esc(t('capHitMsg'))}</span>` : '');
+
+  const list = document.getElementById('list');
+  if (!CFG.sports[ui.tab]) { list.innerHTML = `<div class="notice"><h2>${esc(t('sportOff'))}</h2><p>${esc(t('sportOffP'))}</p></div>`; return; }
+  let evs = EV.filter(E => ui.tab !== 'soc' || ui.league === 'all' || E.sport === ui.league);
+  const active = E => E.c > now || (!E.ended && now - E.c < 5 * 3600e3);
+  evs = ui.view === 'up' ? evs.filter(active).sort((a, b) => a.c - b.c) : evs.filter(E => !active(E)).sort((a, b) => b.c - a.c);
+  if (!evs.length) {
+    list.innerHTML = `<div class="notice"><h2>${esc(t(ui.view === 'up' ? 'noGames' : 'noPast'))}</h2><p>${esc(t(ui.view === 'up' ? 'noGamesP' : 'noPastP'))}</p></div>`;
+    return;
+  }
+  let html = '', cur = '';
+  for (const E of evs) {
+    const d = new Date(E.c).toLocaleDateString(loc(), { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+    if (d !== cur) { html += `<h2 class="day">${esc(d)}</h2>`; cur = d; }
+    html += gameHTML(E);
+  }
+  list.innerHTML = html;
+}
+
+/* ---------- acciones ---------- */
+document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; ui.tab = b.dataset.tab; saveLocal(); EV = []; render(); load(); openStream(); });
+document.getElementById('mktSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.mkt = b.dataset.m; saveLocal(); render(); });
+document.getElementById('viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.view = b.dataset.v; saveLocal(); render(); });
+document.getElementById('fmtSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.fmt = b.dataset.f; saveLocal(); render(); });
+document.getElementById('langSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.lang = b.dataset.l; saveLocal(); render(); });
+document.getElementById('leagueSel').addEventListener('change', e => { ui.league = e.target.value; saveLocal(); render(); });
+document.getElementById('btnRefresh').addEventListener('click', async () => {
+  const btn = document.getElementById('btnRefresh');
+  busy = true; btn.disabled = true; btn.textContent = t('refreshing');
+  try { const j = await api('/api/refresh?tab=' + ui.tab, { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else toast(t('updated')); await load(); }
+  catch (e) { if (!e.auth) toast(e.message, 7000); }
+  busy = false; btn.disabled = false; btn.textContent = t('refresh');
+});
+document.getElementById('list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = encodeURIComponent(b.dataset.id);
+  try {
+    if (b.dataset.act === 'fill') {
+      const j = await api(`/api/events/${id}/fill-before`, { method: 'POST' });
+      toast(j.ok ? t('filled') : t(j.reason));
+    } else {
+      if (!confirm(t('confirmOpen'))) return;
+      toast(t('searching'), 60000);
+      const j = await api(`/api/events/${id}/find-opening`, { method: 'POST' });
+      toast(j.ok ? t(j.exact ? 'openFound' : 'openOld', { t: fmtTime(j.t) }) : t(j.reason), 7000);
+    }
+    load();
+  } catch (ex) { if (!ex.auth) toast(t('histErr') + ex.message, 7000); }
+});
+
+function creditsHTML(){
+  if (!ST) return '';
+  const rows = (ST.byKind || []).map(r => `<tr><td>${esc(t('k_' + r.kind))}</td><td>${r.calls}×</td><td>${r.cost}</td></tr>`).join('');
+  return `<p><b>${esc(t('creditsLine', { r: ST.remaining ?? '—', u: ST.used24 }))}</b></p>` +
+    (rows ? `<div class="scroll"><table class="credtable"><tbody>${rows}</tbody></table></div>` : `<p class="hint">${esc(t('creditsNone'))}</p>`);
+}
+async function openSettings(){
+  try { ST = await api('/api/status'); } catch (e) { if (e.auth) return; }
+  document.getElementById('credits').innerHTML = creditsHTML();
+  for (const tb of ['nfl', 'ncaaf', 'nba', 'soc']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
+  document.getElementById('watchMin').value = String(CFG.watchMin);
+  document.getElementById('liveSec').value = String(CFG.liveSec);
+  document.getElementById('dailyCap').value = CFG.dailyCap;
+  document.getElementById('xSoc').checked = !!CFG.extras;
+  document.getElementById('ladSoc').value = CFG.ladder;
+  document.getElementById('leagueChecks').innerHTML = SPORTS.soc.map(l =>
+    `<label><input type="checkbox" value="${l.k}" ${CFG.leagues.includes(l.k) ? 'checked' : ''}> ${esc(l.n)}</label>`).join('');
+  document.getElementById('bookChecks').innerHTML = Object.entries(BOOKS).map(([k, n]) =>
+    `<label><input type="checkbox" value="${k}" ${k === 'fanduel' ? 'checked disabled' : CFG.books.includes(k) ? 'checked' : ''}> ${esc(n)}</label>`).join('');
+  document.getElementById('dlgSettings').showModal();
+}
+document.getElementById('btnSettings').addEventListener('click', openSettings);
+document.getElementById('btnCancel').addEventListener('click', () => document.getElementById('dlgSettings').close());
+document.getElementById('btnSave').addEventListener('click', async () => {
+  const body = {
+    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'soc'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
+    watchMin: Number(document.getElementById('watchMin').value),
+    liveSec: Number(document.getElementById('liveSec').value),
+    dailyCap: Number(document.getElementById('dailyCap').value),
+    extras: document.getElementById('xSoc').checked,
+    ladder: document.getElementById('ladSoc').value,
+    leagues: [...document.querySelectorAll('#leagueChecks input:checked')].map(i => i.value),
+    books: [...document.querySelectorAll('#bookChecks input:checked:not(:disabled)')].map(i => i.value)
+  };
+  try { const j = await api('/api/config', { method: 'PUT', body: JSON.stringify(body) }); CFG = j.config; document.getElementById('dlgSettings').close(); toast(t('saved')); load(); }
+  catch (e) { if (!e.auth) toast(e.message, 7000); }
+});
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  try { await api('/api/logout', { method: 'POST' }); } catch (e) {}
+  document.getElementById('dlgSettings').close(); EV = []; CFG = null; showLogin();
+});
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+applyStatic(); boot();
+
+</script>
+</body>
+</html>
