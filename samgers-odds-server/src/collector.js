@@ -1,4 +1,4 @@
-import { FEATURED, EXTRA_SOC, DAY, SPORTS, isIntlKey, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, SPORTS, BOOKS, isIntlKey, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, allBooks, withExtras } from './odds.js';
 
@@ -26,7 +26,7 @@ export function run(name, fn) {
 
 const oddsParams = (books = 'fanduel', markets = FEATURED) =>
   ({ regions: 'us', bookmakers: books, markets, oddsFormat: 'decimal', dateFormat: 'iso' });
-const bookList = cfg => ['fanduel', ...cfg.books.filter(b => b !== 'fanduel')].slice(0, 10).join(',');
+const bookList = () => Object.keys(BOOKS).join(',');
 const isSoc = (cfg, k) => k.startsWith('soccer_') && cfg.extras;
 const groupBy = (rows, f) => rows.reduce((m, r) => (m.get(f(r)) || m.set(f(r), []).get(f(r))).push(r) && m, new Map());
 

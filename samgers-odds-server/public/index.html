@@ -555,7 +555,7 @@ function pubLine(E){
 }
 function booksHTML(E){
   const B = E.books; if (!B) return '';
-  const keys = Object.keys(BOOKS).filter(k => B.by[k] && (k === 'fanduel' || CFG.books.includes(k)));
+  const keys = Object.keys(BOOKS).filter(k => B.by[k]);
   if (!keys.length) return '';
   const soccer = socLike(tabOf(E.sport));
   const order = soccer ? [E.home, 'Draw', E.away] : [E.away, E.home];

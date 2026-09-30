@@ -28,17 +28,13 @@ export const SPORTS = {
 const INTL_RE = /^soccer_(?!.*club)(fifa|uefa_nations|uefa_euro_|uefa_european_championship|conmebol_copa_america|africa_cup|concacaf_gold|concacaf_nations|afc_asian|asian_cup|international|.*qualif|.*friendl)/;
 export const isIntlKey = k => INTL_RE.test(k) && !/winner/.test(k);
 
-export const BOOKS = {
-  fanduel: 'FanDuel', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars',
-  espnbet: 'ESPN BET', fanatics: 'Fanatics', betrivers: 'BetRivers', bovada: 'Bovada',
-  betonlineag: 'BetOnline', ballybet: 'Bally Bet'
-};
+export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere' };
 
 export const DEFAULT_CONFIG = {
   sports: { nfl: true, ncaaf: true, nba: true, soc: true, intl: true },
   leagues: ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga',
     'soccer_france_ligue_one', 'soccer_uefa_champs_league'],
-  books: ['fanduel', 'draftkings', 'betmgm', 'williamhill_us', 'espnbet', 'fanatics'],
+  books: ['fanduel', 'codere_it'],
   extras: true,
   ladder: '0.5, 1.5, 2.5, 3.5',
   liveSec: 120,
