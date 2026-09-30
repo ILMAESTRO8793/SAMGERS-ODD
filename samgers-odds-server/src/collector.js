@@ -1,8 +1,8 @@
-import { FEATURED, EXTRA_SOC, DAY, tabOf, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, SPORTS, isIntlKey, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, allBooks, withExtras } from './odds.js';
 
-export const state = { lastRun: {}, lastError: null, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
+export const state = { lastRun: {}, lastError: null, lastIntl: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
 let notify = () => {};
 export const setNotifier = fn => { notify = fn; };
@@ -27,11 +27,20 @@ export function run(name, fn) {
 const oddsParams = (books = 'fanduel', markets = FEATURED) =>
   ({ regions: 'us', bookmakers: books, markets, oddsFormat: 'decimal', dateFormat: 'iso' });
 const bookList = cfg => ['fanduel', ...cfg.books.filter(b => b !== 'fanduel')].slice(0, 10).join(',');
-const isSoc = (cfg, k) => tabOf(k) === 'soc' && cfg.extras;
+const isSoc = (cfg, k) => k.startsWith('soccer_') && cfg.extras;
 const groupBy = (rows, f) => rows.reduce((m, r) => (m.get(f(r)) || m.set(f(r), []).get(f(r))).push(r) && m, new Map());
 
 async function extrasFor(k, id, kind) {
   return norm(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams('fanduel', EXTRA_SOC), kind, { allow404: true }));
+}
+
+/* 0) Competiciones internacionales activas (consulta gratis a The Odds API). */
+async function refreshIntl() {
+  const list = await apiGet('/sports', {}, 'deportes') || [];
+  const intl = list.filter(s => isIntlKey(s.key) && !s.has_outrights).map(s => ({ k: s.key, n: s.title }))
+    .sort((a, b) => a.n.localeCompare(b.n));
+  SPORTS.intl.splice(0, SPORTS.intl.length, ...intl);
+  return true;
 }
 
 /* 1) Vigilancia: detecta cuándo FanDuel publica cada partido y guarda la apertura. */
@@ -209,6 +218,7 @@ async function tick() {
   const cfg = await getConfig();
   const now = Date.now(), dk = dayKey(now);
   const [h, m] = hhmm(now).split(':').map(Number), mins = h * 60 + m;
+  if (now - state.lastIntl >= 6 * 3600e3) { state.lastIntl = now; run('internacional', refreshIntl); }
   if (now - state.lastWatch >= cfg.watchMin * 60e3) { state.lastWatch = now; run('vigilancia', watchJob); }
   for (const at of [18 * 60, 23 * 60 + 50]) {
     const key = dk + '@' + at;

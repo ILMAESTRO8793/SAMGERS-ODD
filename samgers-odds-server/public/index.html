@@ -207,6 +207,7 @@ body{overflow-x:hidden}
       <button class="tab" role="tab" data-tab="ncaaf">NCAAF</button>
       <button class="tab" role="tab" data-tab="nba">NBA</button>
       <button class="tab" role="tab" data-tab="soc" data-i18n="tabSoc"></button>
+      <button class="tab" role="tab" data-tab="intl">International</button>
     </nav>
   </div>
 </header>
@@ -242,6 +243,7 @@ body{overflow-x:hidden}
     <div class="checks">
       <label><input type="checkbox" id="s_nfl"> NFL</label><label><input type="checkbox" id="s_ncaaf"> NCAAF</label><label><input type="checkbox" id="s_nba"> NBA</label>
       <label><input type="checkbox" id="s_soc"> <span data-i18n="wSoc"></span></label>
+      <label><input type="checkbox" id="s_intl"> International</label>
     </div>
     <label style="font-weight:500"><span data-i18n="watchLabel"></span>
       <select class="sel" id="watchMin"><option value="30">30 min</option><option value="60" data-i18n="optHour"></option><option value="120" data-i18n="opt2h"></option></select></label>
@@ -429,6 +431,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const dayKey = ts => new Date(ts).toLocaleDateString('en-CA', { timeZone: TZ });
 const fmtTime = ts => new Date(ts).toLocaleString(loc(), { timeZone: TZ, weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 const fmtKick = ts => new Date(ts).toLocaleTimeString(loc(), { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
+const socLike = tb => tb === 'soc' || tb === 'intl';
 function tabOf(k){ for (const tb in SPORTS) if (SPORTS[tb].some(l => l.k === k)) return tb; return 'soc'; }
 function leagueName(k){ for (const tb in SPORTS) for (const l of SPORTS[tb]) if (l.k === k) return l.n; return k; }
 function toast(msg, ms = 4200){ const el = document.getElementById('toast'); el.textContent = msg; el.style.display = 'block'; clearTimeout(el._h); el._h = setTimeout(() => el.style.display = 'none', ms); }
@@ -515,16 +518,16 @@ function change(a, b, mk, name){
   return `<td class="chg ${cls}">${parts.length ? esc(parts.join(' · ')) : t('noChange')}</td>`;
 }
 function outcomeOrder(E, mk, names){
-  const soccer = tabOf(E.sport) === 'soc';
+  const soccer = socLike(tabOf(E.sport));
   if (mk === 'btts') return ['Yes','No'].filter(n => names.has(n));
   const order = soccer ? [E.home, 'Draw', E.away] : [E.away, E.home];
   return order.filter(n => names.has(n)).concat([...names].filter(n => !order.includes(n)));
 }
 const outLabel = n => n === 'Draw' ? t('draw') : n === 'Yes' ? t('yes') : n === 'No' ? t('no') : n;
-function ladderOf(tab){ const txt = (tab === 'soc' && CFG && CFG.ladder) || ''; return txt.split(',').map(x => parseFloat(x)).filter(x => !isNaN(x)); }
+function ladderOf(tab){ const txt = (socLike(tab) && CFG && CFG.ladder) || ''; return txt.split(',').map(x => parseFloat(x)).filter(x => !isNaN(x)); }
 function totalRows(E, snaps){
   const tab = tabOf(E.sport);
-  if (tab !== 'soc') return snaps.some(s => s && s.o.tmain != null)
+  if (!socLike(tab)) return snaps.some(s => s && s.o.tmain != null)
     ? [{key:'Over@main', label:t('over')}, {key:'Under@main', label:t('under')}] : [];
   const lad = ladderOf(tab), lines = new Set(), mains = new Set();
   snaps.forEach(s => { if (!s || !s.o.totals) return; if (s.o.tmain != null) mains.add(s.o.tmain);
@@ -537,10 +540,10 @@ function totalRows(E, snaps){
 }
 function mkLabel(E, mk){
   const tb = tabOf(E.sport);
-  if (mk === 'h2h') return tb === 'soc' ? t('mkH2hSoc') : 'Moneyline';
-  if (mk === 'spreads') return t(tb === 'soc' ? 'mkSpreadSoc' : 'mkSpreadUS');
+  if (mk === 'h2h') return socLike(tb) ? t('mkH2hSoc') : 'Moneyline';
+  if (mk === 'spreads') return t(socLike(tb) ? 'mkSpreadSoc' : 'mkSpreadUS');
   if (mk === 'btts') return t('mkBtts');
-  return t(tb === 'soc' ? 'mkGoals' : 'mkPoints');
+  return t(socLike(tb) ? 'mkGoals' : 'mkPoints');
 }
 
 /* ---------- vista ---------- */
@@ -554,7 +557,7 @@ function booksHTML(E){
   const B = E.books; if (!B) return '';
   const keys = Object.keys(BOOKS).filter(k => B.by[k] && (k === 'fanduel' || CFG.books.includes(k)));
   if (!keys.length) return '';
-  const soccer = tabOf(E.sport) === 'soc';
+  const soccer = socLike(tabOf(E.sport));
   const order = soccer ? [E.home, 'Draw', E.away] : [E.away, E.home];
   const get = (o, mk, n) => mk === 'totals' ? (o.tmain != null && o.totals ? o.totals[n + '|' + o.tmain] : null) : (o[mk] && o[mk][n]);
   const mks = (ui.mkt === 'all' ? ['h2h','spreads','totals'] : [ui.mkt]).filter(m => m !== 'btts');
@@ -588,7 +591,7 @@ function gameHTML(E){
   const sn = E.snaps, cols = [sn.open, sn.before, E.live];
   const latest = E.live || sn.before || E.last;
   const isToday = dayKey(E.c) === dayKey(Date.now());
-  const soccer = tabOf(E.sport) === 'soc';
+  const soccer = socLike(tabOf(E.sport));
   const started = Date.now() >= E.c;
   const mks = (ui.mkt === 'all' ? ['h2h','spreads','totals','btts'] : [ui.mkt]);
   let body = '';
@@ -636,17 +639,17 @@ function render(){
   applyStatic();
   if (!busy) document.getElementById('btnRefresh').textContent = t('refresh');
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
-  document.getElementById('bttsChip').hidden = ui.tab !== 'soc';
-  if (ui.mkt === 'btts' && ui.tab !== 'soc') ui.mkt = 'all';
+  document.getElementById('bttsChip').hidden = !socLike(ui.tab);
+  if (ui.mkt === 'btts' && !socLike(ui.tab)) ui.mkt = 'all';
   document.querySelectorAll('#mktSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ui.mkt));
   document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.view));
   document.querySelectorAll('#fmtSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === S.fmt));
   if (!CFG) return;
 
   const sel = document.getElementById('leagueSel');
-  sel.hidden = ui.tab !== 'soc';
-  if (ui.tab === 'soc') {
-    const on = SPORTS.soc.filter(l => CFG.leagues.includes(l.k));
+  sel.hidden = !socLike(ui.tab);
+  if (socLike(ui.tab)) {
+    const on = ui.tab === 'soc' ? SPORTS.soc.filter(l => CFG.leagues.includes(l.k)) : SPORTS.intl;
     if (ui.league !== 'all' && !on.some(l => l.k === ui.league)) ui.league = 'all';
     sel.innerHTML = `<option value="all">${esc(t('allLeagues'))}</option>` + on.map(l => `<option value="${l.k}">${esc(l.n)}</option>`).join('');
     sel.value = ui.league;
@@ -663,7 +666,7 @@ function render(){
 
   const list = document.getElementById('list');
   if (!CFG.sports[ui.tab]) { list.innerHTML = `<div class="notice"><h2>${esc(t('sportOff'))}</h2><p>${esc(t('sportOffP'))}</p></div>`; return; }
-  let evs = EV.filter(E => ui.tab !== 'soc' || ui.league === 'all' || E.sport === ui.league);
+  let evs = EV.filter(E => !socLike(ui.tab) || ui.league === 'all' || E.sport === ui.league);
   const active = E => E.c > now || (!E.ended && now - E.c < 5 * 3600e3);
   evs = ui.view === 'up' ? evs.filter(active).sort((a, b) => a.c - b.c) : evs.filter(E => !active(E)).sort((a, b) => b.c - a.c);
   if (!evs.length) {
@@ -719,7 +722,7 @@ function creditsHTML(){
 async function openSettings(){
   try { ST = await api('/api/status'); } catch (e) { if (e.auth) return; }
   document.getElementById('credits').innerHTML = creditsHTML();
-  for (const tb of ['nfl', 'ncaaf', 'nba', 'soc']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
+  for (const tb of ['nfl', 'ncaaf', 'nba', 'soc', 'intl']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
   document.getElementById('watchMin').value = String(CFG.watchMin);
   document.getElementById('liveSec').value = String(CFG.liveSec);
   document.getElementById('dailyCap').value = CFG.dailyCap;
@@ -735,7 +738,7 @@ document.getElementById('btnSettings').addEventListener('click', openSettings);
 document.getElementById('btnCancel').addEventListener('click', () => document.getElementById('dlgSettings').close());
 document.getElementById('btnSave').addEventListener('click', async () => {
   const body = {
-    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'soc'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
+    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'soc', 'intl'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
     watchMin: Number(document.getElementById('watchMin').value),
     liveSec: Number(document.getElementById('liveSec').value),
     dailyCap: Number(document.getElementById('dailyCap').value),

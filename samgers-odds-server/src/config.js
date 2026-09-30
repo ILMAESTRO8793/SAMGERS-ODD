@@ -18,11 +18,15 @@ export const SPORTS = {
     { k: 'soccer_uefa_champs_league', n: 'Champions League' },
     { k: 'soccer_uefa_europa_league', n: 'Europa League' },
     { k: 'soccer_uefa_europa_conference_league', n: 'Conference League' },
-    { k: 'soccer_uefa_nations_league', n: 'Nations League (UEFA)' },
     { k: 'soccer_netherlands_eredivisie', n: 'Eredivisie' },
     { k: 'soccer_portugal_primeira_liga', n: 'Primeira Liga' }
-  ]
+  ],
+  // Selecciones nacionales: se llena solo desde The Odds API (ver refreshIntl en collector.js)
+  intl: []
 };
+
+const INTL_RE = /^soccer_(?!.*club)(fifa|uefa_nations|uefa_euro_|uefa_european_championship|conmebol_copa_america|africa_cup|concacaf_gold|concacaf_nations|afc_asian|asian_cup|international|.*qualif|.*friendl)/;
+export const isIntlKey = k => INTL_RE.test(k) && !/winner/.test(k);
 
 export const BOOKS = {
   fanduel: 'FanDuel', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars',
@@ -31,9 +35,9 @@ export const BOOKS = {
 };
 
 export const DEFAULT_CONFIG = {
-  sports: { nfl: true, ncaaf: true, nba: true, soc: true },
+  sports: { nfl: true, ncaaf: true, nba: true, soc: true, intl: true },
   leagues: ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga',
-    'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_uefa_nations_league'],
+    'soccer_france_ligue_one', 'soccer_uefa_champs_league'],
   books: ['fanduel', 'draftkings', 'betmgm', 'williamhill_us', 'espnbet', 'fanatics'],
   extras: true,
   ladder: '0.5, 1.5, 2.5, 3.5',
@@ -43,6 +47,7 @@ export const DEFAULT_CONFIG = {
 };
 
 export const tabOf = k => {
+  if (isIntlKey(k)) return 'intl';
   for (const t in SPORTS) if (SPORTS[t].some(l => l.k === k)) return t;
   return 'soc';
 };
@@ -54,6 +59,7 @@ export function trackedKeys(cfg, tab) {
   const out = [];
   for (const t of ['nfl', 'ncaaf', 'nba']) if (cfg.sports[t] && (!tab || tab === t)) out.push(...SPORTS[t].map(l => l.k));
   if (cfg.sports.soc && (!tab || tab === 'soc')) out.push(...SPORTS.soc.filter(l => cfg.leagues.includes(l.k)).map(l => l.k));
+  if (cfg.sports.intl && (!tab || tab === 'intl')) out.push(...SPORTS.intl.map(l => l.k));
   return out;
 }
 
