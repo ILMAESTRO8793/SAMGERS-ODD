@@ -201,6 +201,30 @@ export async function liveJob(forceTab) {
   return changed;
 }
 
+/* Cuota actual de los partidos que aún no son hoy (al tocar "Actualizar ahora"): 3 créditos por liga. */
+export async function refreshUpcoming(tab) {
+  const cfg = await getConfig();
+  const now = Date.now(), today = dayKey(now);
+  let changed = false;
+  for (const k of trackedKeys(cfg, tab)) {
+    const rows = (await eventsBySports([k], now, now + 30 * DAY)).filter(e => dayKey(e.commence) !== today);
+    if (!rows.length) continue;
+    const data = await apiGet(`/sports/${k}/odds`, oddsParams(), 'actualizar', { allow404: true }) || [];
+    const byId = new Map(data.map(e => [e.id, e]));
+    const t = Date.now();
+    for (const e of rows) {
+      const o = norm(byId.get(e.id));
+      if (!o) continue;
+      const snap = { t, o, src: 'live' };
+      if (!e.open_snap) await updateEvent(e.id, { open_snap: snap, pub_at: new Date(t), pub_from: e.last_check });
+      await updateEvent(e.id, { cur_snap: snap });
+      await addSnapshot(e.id, 'current', snap);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 /* Histórico (plan pagado) */
 async function hist(e, ts, only) {
   const cfg = await getConfig();

@@ -432,13 +432,13 @@ Object.assign(I18N.en, {
   errPrefix:'Error: ', net:'No connection to the server. Check your internet.'
 });
 
-Object.assign(I18N.es, { cancel: 'Cancelar',
+Object.assign(I18N.es, { cancel: 'Cancelar', vsNow:'vs. {t}', 'k_actualizar':'Actualizar ahora',
   propsTitle:'Jugadores: puntos, rebotes y asistencias', pPoints:'Puntos', pRebounds:'Rebotes', pAssists:'Asistencias',
   pAlt:'Alternativas', pMain:'Línea principal', pPlayer:'Jugador', pOpened:'abrió {x}', pLoading:'Cargando…',
   pNone:'Todavía no hay líneas de jugadores para este partido. FanDuel suele publicarlas el día del partido; el servidor las busca solo cada 2 horas.',
   pRefresh:'Actualizar jugadores', pUpdated:'Líneas de jugadores actualizadas: {t}', pOver:'Más', pUnder:'Menos', pNoBook:'Sin líneas de {b} en este partido.',
   'k_props-apertura':'Jugadores (apertura)', 'k_props-en-vivo':'Jugadores (día del partido)', 'k_props-manual':'Jugadores (manual)', 'k_deportes':'Lista de competiciones', 'k_internacional':'Internacional' });
-Object.assign(I18N.en, { cancel: 'Cancel',
+Object.assign(I18N.en, { cancel: 'Cancel', vsNow:'vs. {t}', 'k_actualizar':'Update now',
   propsTitle:'Players: points, rebounds and assists', pPoints:'Points', pRebounds:'Rebounds', pAssists:'Assists',
   pAlt:'Alternates', pMain:'Main line', pPlayer:'Player', pOpened:'opened {x}', pLoading:'Loading…',
   pNone:'No player lines for this game yet. FanDuel usually posts them on game day; the server checks on its own every 2 hours.',
@@ -664,7 +664,7 @@ function liveTh(E, isToday){
 }
 function gameHTML(E){
   const sn = E.snaps, cols = [sn.open, sn.before, E.live];
-  const latest = E.live || sn.before || E.last;
+  const latest = E.last || E.live || sn.before;
   const isToday = dayKey(E.c) === dayKey(Date.now());
   const soccer = socLike(tabOf(E.sport));
   const started = Date.now() >= E.c;
@@ -703,7 +703,7 @@ function gameHTML(E){
       </div>
     </div>
     <div class="scroll"><table>
-      <thead><tr><th>${esc(t('market'))}</th>${th(t('colOpen'), sn.open)}${th(t('colBefore'), sn.before)}${liveTh(E, isToday)}<th>${esc(t('colMov'))}</th></tr></thead>
+      <thead><tr><th>${esc(t('market'))}</th>${th(t('colOpen'), sn.open)}${th(t('colBefore'), sn.before)}${liveTh(E, isToday)}<th>${esc(t('colMov'))}${latest && latest !== sn.open ? `<small>${esc(t('vsNow', { t: fmtKick(latest.t) }))}</small>` : ''}</th></tr></thead>
       <tbody>${body}</tbody>
     </table></div>
     ${isToday || started ? booksHTML(E) : ''}

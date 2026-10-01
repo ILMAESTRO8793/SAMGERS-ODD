@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { SPORTS, BOOKS, TZ, DAY, trackedKeys } from './config.js';
 import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary } from './db.js';
 import { quota } from './odds.js';
-import { startCollector, setNotifier, viewers, state, run, liveJob, findOpening, fillBefore, fetchProps } from './collector.js';
+import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -71,7 +71,7 @@ const shape = r => ({
   live: r.live_snap, books: r.books, score: r.score, ended: r.ended,
   pub: r.pub_at ? { at: r.pub_at.getTime(), from: r.pub_from ? r.pub_from.getTime() : null, hist: r.pub_hist } : null,
   chk: r.last_check ? r.last_check.getTime() : null,
-  last: r.live_snap || r.before_snap || r.open_snap
+  last: [r.live_snap, r.cur_snap, r.before_snap, r.open_snap].filter(Boolean).sort((a, b) => b.t - a.t)[0] || null
 });
 async function statusInfo() {
   const cfg = await getConfig();
@@ -111,7 +111,7 @@ app.put('/api/config', async (req, res) => {
 
 app.post('/api/refresh', async (req, res) => {
   const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  await run('actualizar', () => liveJob(tab));
+  await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab)));
   res.json({ ok: true, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
 });
 
