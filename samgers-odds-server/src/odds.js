@@ -69,3 +69,30 @@ export function withExtras(o, x) {
   }
   return out;
 }
+
+/* Líneas de jugadores (NBA): { fanduel: { points: { 'Jugador': { main:{pt,o,u}, alts:{ '24.5':{pt,o,u} } } } } } */
+export function normProps(ev) {
+  const out = {};
+  for (const b of (ev && ev.bookmakers) || []) {
+    const bk = {};
+    for (const m of b.markets || []) {
+      const alt = m.key.endsWith('_alternate');
+      const stat = m.key.replace(/^player_/, '').replace(/_alternate$/, '');
+      bk[stat] = bk[stat] || {};
+      for (const oc of m.outcomes || []) {
+        const pl = oc.description || oc.name;
+        const side = oc.name === 'Under' ? 'u' : 'o';
+        const P = bk[stat][pl] = bk[stat][pl] || { main: null, alts: {} };
+        if (!alt) {
+          if (!P.main) P.main = { pt: oc.point };
+          if (P.main.pt === oc.point) P.main[side] = oc.price;
+        } else {
+          const a = P.alts[oc.point] = P.alts[oc.point] || { pt: oc.point };
+          a[side] = oc.price;
+        }
+      }
+    }
+    if (Object.keys(bk).length) out[b.key] = bk;
+  }
+  return Object.keys(out).length ? out : null;
+}

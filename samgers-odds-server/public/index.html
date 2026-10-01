@@ -137,6 +137,23 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .credtable td,.credtable th{padding:5px 8px}
 .num{width:120px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
 .warnline{color:var(--down);font-weight:600}
+.props{border-top:1px solid var(--line)}
+.props summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:.9rem;color:var(--brand)}
+.pbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 14px 10px}
+.pbar .link{font-size:.8rem}
+.pbar .on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.pmeta{font-size:.78rem;color:var(--muted);padding:0 14px 8px}
+.ptable{min-width:0;width:100%}
+.ptable td,.ptable th{white-space:normal;vertical-align:top}
+.ptable .pl{font-weight:600;text-align:left}
+.pline{font-family:var(--display);font-size:1.15rem;font-weight:700}
+.pou{font-size:.8rem;color:var(--muted);line-height:1.35}
+.pou b{color:var(--ink);font-weight:600}
+.popen{font-size:.72rem;color:var(--gold);font-weight:600}
+.palts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.palts span{background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.78rem;white-space:nowrap}
+.palts span b{font-weight:700}
+.pempty{padding:4px 14px 14px;color:var(--muted);font-size:.9rem}
 .langseg{display:inline-flex;border:1px solid rgba(255,255,255,.3);border-radius:6px;overflow:hidden}
 .langseg button{background:none;border:0;color:#fff;opacity:.7;padding:6px 10px;font-weight:700;font-size:.85rem}
 .langseg button[aria-pressed="true"]{background:var(--gold);color:#16202C;opacity:1}
@@ -415,8 +432,18 @@ Object.assign(I18N.en, {
   errPrefix:'Error: ', net:'No connection to the server. Check your internet.'
 });
 
-Object.assign(I18N.es, { cancel: 'Cancelar' });
-Object.assign(I18N.en, { cancel: 'Cancel' });
+Object.assign(I18N.es, { cancel: 'Cancelar', vsNow:'vs. {t}', statusTitle:'Estado del servidor (última vez que corrió cada tarea)', statusErr:'Último error ({t}, {j}): {m}', statusOk:'Sin errores recientes.', 'k_dia-antes-final':'Día antes (11:50 pm)', 'k_limpieza':'Limpieza', 'k_props':'Jugadores NBA', 'k_actualizar':'Actualizar ahora',
+  propsTitle:'Jugadores: puntos, rebotes y asistencias', pPoints:'Puntos', pRebounds:'Rebotes', pAssists:'Asistencias',
+  pAlt:'Alternativas', pMain:'Línea principal', pPlayer:'Jugador', pOpened:'abrió {x}', pLoading:'Cargando…',
+  pNone:'Todavía no hay líneas de jugadores para este partido. FanDuel suele publicarlas el día del partido; el servidor las busca solo cada 2 horas.',
+  pRefresh:'Actualizar jugadores', pUpdated:'Líneas de jugadores actualizadas: {t}', pOver:'Más', pUnder:'Menos', pNoBook:'Sin líneas de {b} en este partido.',
+  'k_props-apertura':'Jugadores (apertura)', 'k_props-en-vivo':'Jugadores (día del partido)', 'k_props-manual':'Jugadores (manual)', 'k_deportes':'Lista de competiciones', 'k_internacional':'Internacional' });
+Object.assign(I18N.en, { cancel: 'Cancel', vsNow:'vs. {t}', statusTitle:'Server status (last time each task ran)', statusErr:'Last error ({t}, {j}): {m}', statusOk:'No recent errors.', 'k_dia-antes-final':'Day before (11:50 pm)', 'k_limpieza':'Cleanup', 'k_props':'NBA players', 'k_actualizar':'Update now',
+  propsTitle:'Players: points, rebounds and assists', pPoints:'Points', pRebounds:'Rebounds', pAssists:'Assists',
+  pAlt:'Alternates', pMain:'Main line', pPlayer:'Player', pOpened:'opened {x}', pLoading:'Loading…',
+  pNone:'No player lines for this game yet. FanDuel usually posts them on game day; the server checks on its own every 2 hours.',
+  pRefresh:'Update players', pUpdated:'Player lines updated: {t}', pOver:'Over', pUnder:'Under', pNoBook:'No {b} lines for this game.',
+  'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 function t(k, v){ let s = (I18N[S.lang] || I18N.es)[k] ?? I18N.es[k] ?? k; if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]); return s; }
 const loc = () => S.lang === 'en' ? 'en-US' : 'es-PA';
 function applyStatic(){
@@ -470,7 +497,7 @@ async function boot(){
 let loadTimer = null;
 async function load(){
   if (!USER) return;
-  try { const j = await api('/api/events?tab=' + ui.tab); EV = j.events; ST = j.status; render(); }
+  try { const j = await api('/api/events?tab=' + ui.tab); EV = j.events; ST = j.status; render(); POPEN.forEach(id => { if (EV.some(E => E.id === id)) loadProps(id); }); }
   catch (e) { if (!e.auth) toast(e.message, 7000); }
 }
 const loadSoon = () => { clearTimeout(loadTimer); loadTimer = setTimeout(load, 400); };
@@ -580,6 +607,54 @@ function booksHTML(E){
     <div class="scroll"><table><thead><tr><th>${esc(t('market'))}</th>${keys.map(k => `<th>${esc(BOOKS[k])}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
   </details>`;
 }
+const PROPS = {}, POPEN = new Set(), PSTAT = {}, PALT = {};
+const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists']];
+function propsShell(E){
+  return `<details class="props" data-pid="${esc(E.id)}" ${POPEN.has(E.id) ? 'open' : ''}><summary>${esc(t('propsTitle'))}</summary>
+    <div class="pbody">${POPEN.has(E.id) ? propsBody(E.id) : ''}</div></details>`;
+}
+const altLabel = pt => (Math.round(pt * 2) / 2 % 1 === 0.5 ? Math.ceil(pt) + '+' : String(pt));
+function propsBody(id){
+  const P = PROPS[id];
+  if (!P) return `<p class="pempty">${esc(t('pLoading'))}</p>`;
+  const st = PSTAT[id] || 'points', alt = !!PALT[id];
+  const bar = `<div class="pbar">` +
+    STATS.map(([k, l]) => `<button class="link ${k === st ? 'on' : ''}" data-act="pstat" data-id="${esc(id)}" data-v="${k}">${esc(t(l))}</button>`).join('') +
+    `<button class="link ${alt ? 'on' : ''}" data-act="palt" data-id="${esc(id)}">${esc(t('pAlt'))}</button>` +
+    `<button class="link" data-act="prefresh" data-id="${esc(id)}">${esc(t('pRefresh'))}</button></div>`;
+  const cur = P.cur && P.cur.by;
+  if (!cur) return bar + `<p class="pempty">${esc(t('pNone'))}</p>`;
+  const books = Object.keys(BOOKS).filter(b => cur[b]);
+  const players = new Set();
+  books.forEach(b => Object.keys((cur[b] || {})[st] || {}).forEach(n => players.add(n)));
+  const fd = (cur.fanduel || {})[st] || {};
+  const list = [...players].sort((a, b) => ((fd[b] && fd[b].main && fd[b].main.pt) || 0) - ((fd[a] && fd[a].main && fd[a].main.pt) || 0));
+  const opened = (P.open && P.open.by && P.open.by.fanduel && P.open.by.fanduel[st]) || {};
+  const meta = `<div class="pmeta">${esc(t('pUpdated', { t: fmtTime(P.cur.t) }))}</div>`;
+  if (!list.length) return bar + meta + `<p class="pempty">${esc(t('pNone'))}</p>`;
+  const head = `<thead><tr><th>${esc(t('pPlayer'))}</th>${books.map(b => `<th>${esc(BOOKS[b])}</th>`).join('')}</tr></thead>`;
+  const rows = list.map(n => {
+    const cells = books.map(b => {
+      const x = ((cur[b] || {})[st] || {})[n];
+      if (!x) return '<td><span class="empty">—</span></td>';
+      if (alt) {
+        const alts = Object.values(x.alts || {}).sort((a, c) => a.pt - c.pt);
+        if (!alts.length) return '<td><span class="empty">—</span></td>';
+        return `<td><div class="palts">${alts.map(a => `<span><b>${esc(altLabel(a.pt))}</b> ${esc(price(a.o) ?? '')}${a.u != null ? ' / ' + esc(t('pUnder')) + ' ' + esc(price(a.u)) : ''}</span>`).join('')}</div></td>`;
+      }
+      if (!x.main) return '<td><span class="empty">—</span></td>';
+      const o = b === 'fanduel' && opened[n] && opened[n].main && opened[n].main.pt !== x.main.pt ? `<div class="popen">${esc(t('pOpened', { x: opened[n].main.pt }))}</div>` : '';
+      return `<td><div class="pline">${esc(x.main.pt)}</div><div class="pou">${esc(t('pOver'))} <b>${esc(price(x.main.o) ?? '—')}</b><br>${esc(t('pUnder'))} <b>${esc(price(x.main.u) ?? '—')}</b></div>${o}</td>`;
+    }).join('');
+    return `<tr><td class="pl">${esc(n)}</td>${cells}</tr>`;
+  }).join('');
+  return bar + meta + `<div class="scroll"><table class="ptable">${head}<tbody>${rows}</tbody></table></div>`;
+}
+async function loadProps(id){
+  try { PROPS[id] = await api(`/api/events/${encodeURIComponent(id)}/props`); } catch (e) { if (e.auth) return; PROPS[id] = { cur: null }; }
+  const el = document.querySelector(`details.props[data-pid="${CSS.escape(id)}"] .pbody`);
+  if (el) el.innerHTML = propsBody(id);
+}
 function liveTh(E, isToday){
   const L = E.live;
   let sub;
@@ -589,7 +664,7 @@ function liveTh(E, isToday){
 }
 function gameHTML(E){
   const sn = E.snaps, cols = [sn.open, sn.before, E.live];
-  const latest = E.live || sn.before || E.last;
+  const latest = E.last || E.live || sn.before;
   const isToday = dayKey(E.c) === dayKey(Date.now());
   const soccer = socLike(tabOf(E.sport));
   const started = Date.now() >= E.c;
@@ -628,10 +703,11 @@ function gameHTML(E){
       </div>
     </div>
     <div class="scroll"><table>
-      <thead><tr><th>${esc(t('market'))}</th>${th(t('colOpen'), sn.open)}${th(t('colBefore'), sn.before)}${liveTh(E, isToday)}<th>${esc(t('colMov'))}</th></tr></thead>
+      <thead><tr><th>${esc(t('market'))}</th>${th(t('colOpen'), sn.open)}${th(t('colBefore'), sn.before)}${liveTh(E, isToday)}<th>${esc(t('colMov'))}${latest && latest !== sn.open ? `<small>${esc(t('vsNow', { t: fmtKick(latest.t) }))}</small>` : ''}</th></tr></thead>
       <tbody>${body}</tbody>
     </table></div>
     ${isToday || started ? booksHTML(E) : ''}
+    ${E.sport === 'basketball_nba' ? propsShell(E) : ''}
   </article>`;
 }
 
@@ -696,8 +772,25 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
   catch (e) { if (!e.auth) toast(e.message, 7000); }
   busy = false; btn.disabled = false; btn.textContent = t('refresh');
 });
+document.getElementById('list').addEventListener('toggle', e => {
+  const d = e.target; if (!d.matches || !d.matches('details.props')) return;
+  const id = d.dataset.pid;
+  if (d.open) { POPEN.add(id); d.querySelector('.pbody').innerHTML = propsBody(id); loadProps(id); } else POPEN.delete(id);
+}, true);
 document.getElementById('list').addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
+  const pid = b.dataset.id, act = b.dataset.act;
+  if (act === 'pstat' || act === 'palt') {
+    if (act === 'pstat') PSTAT[pid] = b.dataset.v; else PALT[pid] = !PALT[pid];
+    const el = b.closest('.pbody'); if (el) el.innerHTML = propsBody(pid);
+    return;
+  }
+  if (act === 'prefresh') {
+    b.disabled = true;
+    try { await api(`/api/events/${encodeURIComponent(pid)}/props/refresh`, { method: 'POST' }); await loadProps(pid); }
+    catch (ex) { if (!ex.auth) toast(ex.message, 7000); }
+    return;
+  }
   const id = encodeURIComponent(b.dataset.id);
   try {
     if (b.dataset.act === 'fill') {
@@ -717,7 +810,10 @@ function creditsHTML(){
   if (!ST) return '';
   const rows = (ST.byKind || []).map(r => `<tr><td>${esc(t('k_' + r.kind))}</td><td>${r.calls}×</td><td>${r.cost}</td></tr>`).join('');
   return `<p><b>${esc(t('creditsLine', { r: ST.remaining ?? '—', u: ST.used24 }))}</b></p>` +
-    (rows ? `<div class="scroll"><table class="credtable"><tbody>${rows}</tbody></table></div>` : `<p class="hint">${esc(t('creditsNone'))}</p>`);
+    (rows ? `<div class="scroll"><table class="credtable"><tbody>${rows}</tbody></table></div>` : `<p class="hint">${esc(t('creditsNone'))}</p>`) +
+    `<p style="margin-top:14px"><b>${esc(t('statusTitle'))}</b></p>` +
+    `<div class="scroll"><table class="credtable"><tbody>${Object.entries(ST.lastRun || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(t('k_' + k))}</td><td>${esc(fmtTime(v))}</td></tr>`).join('')}</tbody></table></div>` +
+    (ST.lastError ? `<p class="warnline">${esc(t('statusErr', { t: fmtTime(ST.lastError.at), j: t('k_' + ST.lastError.job), m: ST.lastError.message }))}</p>` : `<p class="hint">${esc(t('statusOk'))}</p>`);
 }
 async function openSettings(){
   try { ST = await api('/api/status'); } catch (e) { if (e.auth) return; }

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { SPORTS, BOOKS, TZ, DAY, trackedKeys } from './config.js';
 import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary } from './db.js';
 import { quota } from './odds.js';
-import { startCollector, setNotifier, viewers, state, run, liveJob, findOpening, fillBefore } from './collector.js';
+import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -41,6 +41,7 @@ function setSession(req, res, value, maxAge) {
 const attempts = new Map();
 
 const app = express();
+const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '50kb' }));
 
@@ -71,7 +72,7 @@ const shape = r => ({
   live: r.live_snap, books: r.books, score: r.score, ended: r.ended,
   pub: r.pub_at ? { at: r.pub_at.getTime(), from: r.pub_from ? r.pub_from.getTime() : null, hist: r.pub_hist } : null,
   chk: r.last_check ? r.last_check.getTime() : null,
-  last: r.live_snap || r.before_snap || r.open_snap
+  last: [r.live_snap, r.cur_snap, r.before_snap, r.open_snap].filter(Boolean).sort((a, b) => b.t - a.t)[0] || null
 });
 async function statusInfo() {
   const cfg = await getConfig();
@@ -82,20 +83,20 @@ async function statusInfo() {
   };
 }
 
-app.get('/api/me', async (req, res) => res.json({ user: req.user, tz: TZ, sports: SPORTS, books: BOOKS, config: await getConfig() }));
+app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, sports: SPORTS, books: BOOKS, config: await getConfig() })));
 
-app.get('/api/events', async (req, res) => {
+app.get('/api/events', wrap(async (req, res) => {
   const cfg = await getConfig();
   const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
   const keys = trackedKeys(cfg, tab);
   const now = Date.now();
   const rows = keys.length ? await eventsBySports(keys, now - 14 * DAY, now + 30 * DAY) : [];
   res.json({ events: rows.map(shape), status: await statusInfo() });
-});
+}));
 
-app.get('/api/status', async (req, res) => res.json(await statusInfo()));
+app.get('/api/status', wrap(async (req, res) => res.json(await statusInfo())));
 
-app.put('/api/config', async (req, res) => {
+app.put('/api/config', wrap(async (req, res) => {
   const b = req.body || {}, patch = {};
   if (b.sports) patch.sports = Object.fromEntries(Object.keys(SPORTS).map(t => [t, !!b.sports[t]]));
   if (Array.isArray(b.leagues)) patch.leagues = b.leagues.filter(k => SPORTS.soc.some(l => l.k === k));
@@ -107,23 +108,34 @@ app.put('/api/config', async (req, res) => {
   if (Number(b.dailyCap) >= 0) patch.dailyCap = Math.min(100000, Math.round(Number(b.dailyCap)));
   res.json({ config: await setConfig(patch) });
   broadcast();
-});
+}));
 
-app.post('/api/refresh', async (req, res) => {
+app.post('/api/refresh', wrap(async (req, res) => {
   const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  await run('actualizar', () => liveJob(tab));
+  await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab)));
   res.json({ ok: true, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
-});
+}));
 
 async function eventRow(id) { const r = await q('select * from events where id = $1', [id]); return r.rows[0]; }
-app.post('/api/events/:id/find-opening', async (req, res) => {
+app.post('/api/events/:id/find-opening', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
   try { res.json(await findOpening(e)); } catch (err) { res.status(502).json({ error: err.message }); }
-});
-app.post('/api/events/:id/fill-before', async (req, res) => {
+}));
+app.get('/api/events/:id/props', wrap(async (req, res) => {
+  const r = await q('select props_open, props, props_t from events where id = $1', [req.params.id]);
+  if (!r.rows[0]) return res.status(404).json({ error: 'notFound' });
+  const x = r.rows[0];
+  res.json({ open: x.props_open, cur: x.props, checked: x.props_t ? x.props_t.getTime() : null });
+}));
+app.post('/api/events/:id/props/refresh', wrap(async (req, res) => {
+  const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
+  if (e.sport !== 'basketball_nba') return res.status(400).json({ error: 'notNba' });
+  try { const ok = await fetchProps(e, 'props-manual'); res.json({ ok }); } catch (err) { res.status(502).json({ error: err.message }); }
+}));
+app.post('/api/events/:id/fill-before', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
   try { res.json(await fillBefore(e)); } catch (err) { res.status(502).json({ error: err.message }); }
-});
+}));
 
 /* ---------- en vivo: aviso a las apps abiertas ---------- */
 const streams = new Map();
@@ -145,6 +157,9 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
   setHeaders: (res, p) => { if (/\.(html|webmanifest|js)$/.test(p)) res.setHeader('Cache-Control', 'no-cache'); }
 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
+
+process.on('unhandledRejection', e => console.error('[error]', e && e.message ? e.message : e));
+app.use((err, req, res, next) => { console.error('[api]', err.message); res.status(500).json({ error: err.message }); });
 
 await migrate();
 app.listen(PORT, () => {

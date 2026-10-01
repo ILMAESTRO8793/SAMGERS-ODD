@@ -54,6 +54,10 @@ create table if not exists credit_log (
   remaining int
 );
 create index if not exists credit_log_ts_idx on credit_log (ts);
+alter table events add column if not exists props_open jsonb;
+alter table events add column if not exists props jsonb;
+alter table events add column if not exists props_t timestamptz;
+alter table events add column if not exists cur_snap jsonb;
 create table if not exists settings (
   key text primary key,
   value jsonb not null
@@ -84,7 +88,7 @@ export async function upsertEvent(ev, sport) {
     [ev.id, sport, ev.home_team, ev.away_team, ev.commence_time]);
 }
 
-const JSON_COLS = new Set(['open_snap', 'before_snap', 'live_snap', 'books', 'score', 'xo']);
+const JSON_COLS = new Set(['open_snap', 'before_snap', 'live_snap', 'books', 'score', 'xo', 'props_open', 'props', 'cur_snap']);
 export async function updateEvent(id, fields) {
   const keys = Object.keys(fields);
   if (!keys.length) return;

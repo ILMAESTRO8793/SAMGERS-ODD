@@ -1,8 +1,8 @@
 import { FEATURED, EXTRA_SOC, DAY, SPORTS, BOOKS, isIntlKey, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
-import { apiGet, norm, allBooks, withExtras } from './odds.js';
+import { apiGet, norm, allBooks, withExtras, normProps } from './odds.js';
 
-export const state = { lastRun: {}, lastError: null, lastIntl: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
+export const state = { lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
 let notify = () => {};
 export const setNotifier = fn => { notify = fn; };
@@ -32,6 +32,31 @@ const groupBy = (rows, f) => rows.reduce((m, r) => (m.get(f(r)) || m.set(f(r), [
 
 async function extrasFor(k, id, kind) {
   return norm(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams('fanduel', EXTRA_SOC), kind, { allow404: true }));
+}
+
+/* Líneas de jugadores NBA: puntos, rebotes y asistencias (principal y alternativas) */
+const NBA = 'basketball_nba';
+const PROPS = 'player_points,player_rebounds,player_assists,player_points_alternate,player_rebounds_alternate,player_assists_alternate';
+export async function fetchProps(e, kind) {
+  const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams(bookList(), PROPS), kind, { allow404: true });
+  const p = normProps(j), t = Date.now();
+  const f = { props_t: new Date(t) };
+  if (p) { f.props = { t, by: p }; if (!e.props_open) f.props_open = { t, by: p }; }
+  await updateEvent(e.id, f);
+  if (p) notify();
+  return !!p;
+}
+/* Busca cuándo FanDuel publica las líneas de jugadores (cada 2 horas, solo partidos de las próximas 36 h). */
+async function propsProbe() {
+  const cfg = await getConfig();
+  if (!cfg.sports.nba) return false;
+  const now = Date.now();
+  const rows = await eventsBySports([NBA], now, now + 36 * 3600e3);
+  for (const e of rows) {
+    if (e.props_open || (e.props_t && now - e.props_t.getTime() < 2 * 3600e3)) continue;
+    await fetchProps(e, 'props-apertura');
+  }
+  return false;
 }
 
 /* 0) Competiciones internacionales activas (consulta gratis a The Odds API). */
@@ -72,10 +97,10 @@ async function watchJob() {
 }
 
 /* 2) Día antes: última cuota del día anterior al partido (18:00 y 23:50, hora de Panamá). */
-export async function beforeJob() {
+export async function beforeJob(onlyMissing = false) {
   const cfg = await getConfig();
   const now = Date.now(), tomorrow = dayKey(now + DAY);
-  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow);
+  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (!onlyMissing || !e.before_snap));
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
     const data = await apiGet(`/sports/${k}/odds`, oddsParams(), 'dia-antes', { allow404: true }) || [];
@@ -170,6 +195,31 @@ export async function liveJob(forceTab) {
       await updateEvent(e.id, { live_snap: snap, books: { t, by: allBooks(ev), inplay: started } });
       if (t - (liveSnapAt.get(e.id) || 0) >= 10 * 60e3) { liveSnapAt.set(e.id, t); await addSnapshot(e.id, started ? 'live' : 'gameday', snap); }
       changed = true;
+      if (k === NBA && (!e.props_t || t - e.props_t.getTime() >= 30 * 60e3)) await fetchProps(e, 'props-en-vivo');
+    }
+  }
+  return changed;
+}
+
+/* Cuota actual de los partidos que aún no son hoy (al tocar "Actualizar ahora"): 3 créditos por liga. */
+export async function refreshUpcoming(tab) {
+  const cfg = await getConfig();
+  const now = Date.now(), today = dayKey(now);
+  let changed = false;
+  for (const k of trackedKeys(cfg, tab)) {
+    const rows = (await eventsBySports([k], now, now + 30 * DAY)).filter(e => dayKey(e.commence) !== today);
+    if (!rows.length) continue;
+    const data = await apiGet(`/sports/${k}/odds`, oddsParams(), 'actualizar', { allow404: true }) || [];
+    const byId = new Map(data.map(e => [e.id, e]));
+    const t = Date.now();
+    for (const e of rows) {
+      const o = norm(byId.get(e.id));
+      if (!o) continue;
+      const snap = { t, o, src: 'live' };
+      if (!e.open_snap) await updateEvent(e.id, { open_snap: snap, pub_at: new Date(t), pub_from: e.last_check });
+      await updateEvent(e.id, { cur_snap: snap });
+      await addSnapshot(e.id, 'current', snap);
+      changed = true;
     }
   }
   return changed;
@@ -220,10 +270,12 @@ async function tick() {
   const [h, m] = hhmm(now).split(':').map(Number), mins = h * 60 + m;
   if (now - state.lastIntl >= 6 * 3600e3) { state.lastIntl = now; run('internacional', refreshIntl); }
   if (now - state.lastWatch >= cfg.watchMin * 60e3) { state.lastWatch = now; run('vigilancia', watchJob); }
-  for (const at of [18 * 60, 23 * 60 + 50]) {
-    const key = dk + '@' + at;
-    if (mins >= at && mins < at + 9 && !state.done.has(key)) { state.done.add(key); run('dia-antes', beforeJob); }
-  }
+  if (now - state.lastProps >= 30 * 60e3) { state.lastProps = now; run('props', propsProbe); }
+  // Día antes: desde las 6:00 pm guarda los partidos de mañana que aún no tengan lectura (revisa cada 30 min,
+  // así no se pierde aunque el servidor se reinicie), y a las 11:50 pm guarda la última cuota del día.
+  if (mins >= 18 * 60 && now - state.lastBefore >= 30 * 60e3) { state.lastBefore = now; run('dia-antes', () => beforeJob(true)); }
+  const key = dk + '@2350';
+  if (mins >= 23 * 60 + 50 && !state.done.has(key)) { state.done.add(key); run('dia-antes-final', () => beforeJob(false)); }
   run('cierre', closeJob);
   if (viewers.size && now - state.lastLive >= cfg.liveSec * 1000) { state.lastLive = now; run('en-vivo', () => liveJob()); }
   if (mins === 4 * 60 && !state.done.has(dk + '@prune')) { state.done.add(dk + '@prune'); run('limpieza', async () => { await prune(); return false; }); }
