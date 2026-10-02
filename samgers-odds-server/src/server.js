@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SPORTS, BOOKS, TZ, DAY, trackedKeys } from './config.js';
-import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary } from './db.js';
+import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24 } from './db.js';
 import { quota } from './odds.js';
 import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
 
@@ -113,7 +113,7 @@ app.put('/api/config', wrap(async (req, res) => {
 app.post('/api/refresh', wrap(async (req, res) => {
   const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
   await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab)));
-  res.json({ ok: true, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
+  res.json({ ok: true, missing: state.missing.size, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
 }));
 
 async function eventRow(id) { const r = await q('select * from events where id = $1', [id]); return r.rows[0]; }
@@ -122,9 +122,15 @@ app.post('/api/events/:id/find-opening', wrap(async (req, res) => {
   try { res.json(await findOpening(e)); } catch (err) { res.status(502).json({ error: err.message }); }
 }));
 app.get('/api/events/:id/props', wrap(async (req, res) => {
-  const r = await q('select props_open, props, props_t from events where id = $1', [req.params.id]);
-  if (!r.rows[0]) return res.status(404).json({ error: 'notFound' });
-  const x = r.rows[0];
+  let x = await eventRow(req.params.id);
+  if (!x) return res.status(404).json({ error: 'notFound' });
+  // Solo se actualizan los partidos que abres: si es hoy (o se está jugando) y la lectura tiene más de 30 min.
+  const now = Date.now(), c = x.commence.getTime(), cfg = await getConfig();
+  const today = new Date(c).toLocaleDateString('en-CA', { timeZone: TZ }) === new Date(now).toLocaleDateString('en-CA', { timeZone: TZ });
+  if (x.sport === 'basketball_nba' && !x.ended && (today || (c <= now && now - c < 5 * 3600e3)) &&
+      (!x.props_t || now - x.props_t.getTime() >= 30 * 60e3) && (await usedLast24()) < cfg.dailyCap) {
+    try { await fetchProps(x, 'props-en-vivo'); x = await eventRow(req.params.id); } catch (err) { console.error('[props]', err.message); }
+  }
   res.json({ open: x.props_open, cur: x.props, checked: x.props_t ? x.props_t.getTime() : null });
 }));
 app.post('/api/events/:id/props/refresh', wrap(async (req, res) => {

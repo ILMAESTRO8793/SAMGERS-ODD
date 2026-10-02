@@ -224,7 +224,6 @@ body{overflow-x:hidden}
       <button class="tab" role="tab" data-tab="ncaaf">NCAAF</button>
       <button class="tab" role="tab" data-tab="nba">NBA</button>
       <button class="tab" role="tab" data-tab="soc" data-i18n="tabSoc"></button>
-      <button class="tab" role="tab" data-tab="intl">International</button>
     </nav>
   </div>
 </header>
@@ -260,7 +259,6 @@ body{overflow-x:hidden}
     <div class="checks">
       <label><input type="checkbox" id="s_nfl"> NFL</label><label><input type="checkbox" id="s_ncaaf"> NCAAF</label><label><input type="checkbox" id="s_nba"> NBA</label>
       <label><input type="checkbox" id="s_soc"> <span data-i18n="wSoc"></span></label>
-      <label><input type="checkbox" id="s_intl"> International</label>
     </div>
     <label style="font-weight:500"><span data-i18n="watchLabel"></span>
       <select class="sel" id="watchMin"><option value="30">30 min</option><option value="60" data-i18n="optHour"></option><option value="120" data-i18n="opt2h"></option></select></label>
@@ -432,16 +430,16 @@ Object.assign(I18N.en, {
   errPrefix:'Error: ', net:'No connection to the server. Check your internet.'
 });
 
-Object.assign(I18N.es, { cancel: 'Cancelar', vsNow:'vs. {t}', statusTitle:'Estado del servidor (última vez que corrió cada tarea)', statusErr:'Último error ({t}, {j}): {m}', statusOk:'Sin errores recientes.', 'k_dia-antes-final':'Día antes (11:50 pm)', 'k_limpieza':'Limpieza', 'k_props':'Jugadores NBA', 'k_actualizar':'Actualizar ahora',
-  propsTitle:'Jugadores: puntos, rebotes y asistencias', pPoints:'Puntos', pRebounds:'Rebotes', pAssists:'Asistencias',
+Object.assign(I18N.es, { missingFd:'Actualizado. FanDuel no está dando cuotas en este momento para {n} partido(s) de hoy; se intentará de nuevo en cada actualización.', 'k_apertura-partido':'Aperturas (por partido)', 'k_dia-antes-partido':'Día antes (por partido)', 'k_cierre-partido':'Cierre (por partido)', 'k_en-vivo-partido':'En vivo (por partido)', 'k_actualizar-partido':'Actualizar ahora (por partido)', cancel: 'Cancelar', vsNow:'vs. {t}', statusTitle:'Estado del servidor (última vez que corrió cada tarea)', statusErr:'Último error ({t}, {j}): {m}', statusOk:'Sin errores recientes.', 'k_dia-antes-final':'Día antes (11:50 pm)', 'k_limpieza':'Limpieza', 'k_props':'Jugadores NBA', 'k_actualizar':'Actualizar ahora',
+  propsTitle:'Player props: puntos, rebotes, asistencias y más', pPoints:'Puntos', pRebounds:'Rebotes', pAssists:'Asistencias', pThrees:'Triples', pPRA:'PRA', pPR:'P+R', pPA:'P+A', pRA:'R+A', pSteals:'Robos', pBlocks:'Tapones', pTurnovers:'Pérdidas',
   pAlt:'Alternativas', pMain:'Línea principal', pPlayer:'Jugador', pOpened:'abrió {x}', pLoading:'Cargando…',
-  pNone:'Todavía no hay líneas de jugadores para este partido. FanDuel suele publicarlas el día del partido; el servidor las busca solo cada 2 horas.',
+  pNone:'Todavía no hay líneas para esta estadística en este partido. FanDuel suele publicar las props el día del partido; el servidor las busca solo cada 2 horas.',
   pRefresh:'Actualizar jugadores', pUpdated:'Líneas de jugadores actualizadas: {t}', pOver:'Más', pUnder:'Menos', pNoBook:'Sin líneas de {b} en este partido.',
   'k_props-apertura':'Jugadores (apertura)', 'k_props-en-vivo':'Jugadores (día del partido)', 'k_props-manual':'Jugadores (manual)', 'k_deportes':'Lista de competiciones', 'k_internacional':'Internacional' });
-Object.assign(I18N.en, { cancel: 'Cancel', vsNow:'vs. {t}', statusTitle:'Server status (last time each task ran)', statusErr:'Last error ({t}, {j}): {m}', statusOk:'No recent errors.', 'k_dia-antes-final':'Day before (11:50 pm)', 'k_limpieza':'Cleanup', 'k_props':'NBA players', 'k_actualizar':'Update now',
-  propsTitle:'Players: points, rebounds and assists', pPoints:'Points', pRebounds:'Rebounds', pAssists:'Assists',
+Object.assign(I18N.en, { missingFd:'Updated. FanDuel is not offering odds right now for {n} of today\'s game(s); it will retry on every update.', 'k_apertura-partido':'Openings (per game)', 'k_dia-antes-partido':'Day before (per game)', 'k_cierre-partido':'Closing (per game)', 'k_en-vivo-partido':'Live (per game)', 'k_actualizar-partido':'Update now (per game)', cancel: 'Cancel', vsNow:'vs. {t}', statusTitle:'Server status (last time each task ran)', statusErr:'Last error ({t}, {j}): {m}', statusOk:'No recent errors.', 'k_dia-antes-final':'Day before (11:50 pm)', 'k_limpieza':'Cleanup', 'k_props':'NBA players', 'k_actualizar':'Update now',
+  propsTitle:'Player props: points, rebounds, assists and more', pPoints:'Points', pRebounds:'Rebounds', pAssists:'Assists', pThrees:'Threes', pPRA:'PRA', pPR:'P+R', pPA:'P+A', pRA:'R+A', pSteals:'Steals', pBlocks:'Blocks', pTurnovers:'Turnovers',
   pAlt:'Alternates', pMain:'Main line', pPlayer:'Player', pOpened:'opened {x}', pLoading:'Loading…',
-  pNone:'No player lines for this game yet. FanDuel usually posts them on game day; the server checks on its own every 2 hours.',
+  pNone:'No lines for this stat in this game yet. FanDuel usually posts props on game day; the server checks on its own every 2 hours.',
   pRefresh:'Update players', pUpdated:'Player lines updated: {t}', pOver:'Over', pUnder:'Under', pNoBook:'No {b} lines for this game.',
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 function t(k, v){ let s = (I18N[S.lang] || I18N.es)[k] ?? I18N.es[k] ?? k; if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]); return s; }
@@ -608,7 +606,7 @@ function booksHTML(E){
   </details>`;
 }
 const PROPS = {}, POPEN = new Set(), PSTAT = {}, PALT = {};
-const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists']];
+const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists'], ['threes', 'pThrees'], ['points_rebounds_assists', 'pPRA'], ['points_rebounds', 'pPR'], ['points_assists', 'pPA'], ['rebounds_assists', 'pRA'], ['steals', 'pSteals'], ['blocks', 'pBlocks'], ['turnovers', 'pTurnovers']];
 function propsShell(E){
   return `<details class="props" data-pid="${esc(E.id)}" ${POPEN.has(E.id) ? 'open' : ''}><summary>${esc(t('propsTitle'))}</summary>
     <div class="pbody">${POPEN.has(E.id) ? propsBody(E.id) : ''}</div></details>`;
@@ -725,7 +723,7 @@ function render(){
   const sel = document.getElementById('leagueSel');
   sel.hidden = !socLike(ui.tab);
   if (socLike(ui.tab)) {
-    const on = ui.tab === 'soc' ? SPORTS.soc.filter(l => CFG.leagues.includes(l.k)) : SPORTS.intl;
+    const on = SPORTS.soc.filter(l => CFG.leagues.includes(l.k));
     if (ui.league !== 'all' && !on.some(l => l.k === ui.league)) ui.league = 'all';
     sel.innerHTML = `<option value="all">${esc(t('allLeagues'))}</option>` + on.map(l => `<option value="${l.k}">${esc(l.n)}</option>`).join('');
     sel.value = ui.league;
@@ -768,7 +766,7 @@ document.getElementById('leagueSel').addEventListener('change', e => { ui.league
 document.getElementById('btnRefresh').addEventListener('click', async () => {
   const btn = document.getElementById('btnRefresh');
   busy = true; btn.disabled = true; btn.textContent = t('refreshing');
-  try { const j = await api('/api/refresh?tab=' + ui.tab, { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else toast(t('updated')); await load(); }
+  try { const j = await api('/api/refresh?tab=' + ui.tab, { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else if (j.missing) toast(t('missingFd', { n: j.missing }), 8000); else toast(t('updated')); await load(); }
   catch (e) { if (!e.auth) toast(e.message, 7000); }
   busy = false; btn.disabled = false; btn.textContent = t('refresh');
 });
@@ -818,7 +816,7 @@ function creditsHTML(){
 async function openSettings(){
   try { ST = await api('/api/status'); } catch (e) { if (e.auth) return; }
   document.getElementById('credits').innerHTML = creditsHTML();
-  for (const tb of ['nfl', 'ncaaf', 'nba', 'soc', 'intl']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
+  for (const tb of ['nfl', 'ncaaf', 'nba', 'soc']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
   document.getElementById('watchMin').value = String(CFG.watchMin);
   document.getElementById('liveSec').value = String(CFG.liveSec);
   document.getElementById('dailyCap').value = CFG.dailyCap;
@@ -834,7 +832,7 @@ document.getElementById('btnSettings').addEventListener('click', openSettings);
 document.getElementById('btnCancel').addEventListener('click', () => document.getElementById('dlgSettings').close());
 document.getElementById('btnSave').addEventListener('click', async () => {
   const body = {
-    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'soc', 'intl'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
+    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'soc'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
     watchMin: Number(document.getElementById('watchMin').value),
     liveSec: Number(document.getElementById('liveSec').value),
     dailyCap: Number(document.getElementById('dailyCap').value),

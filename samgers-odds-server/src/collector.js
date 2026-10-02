@@ -1,8 +1,8 @@
-import { FEATURED, EXTRA_SOC, DAY, SPORTS, BOOKS, isIntlKey, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, BOOKS, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, allBooks, withExtras, normProps } from './odds.js';
 
-export const state = { lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
+export const state = { missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
 let notify = () => {};
 export const setNotifier = fn => { notify = fn; };
@@ -30,16 +30,48 @@ const bookList = () => Object.keys(BOOKS).join(',');
 const isSoc = (cfg, k) => k.startsWith('soccer_') && cfg.extras;
 const groupBy = (rows, f) => rows.reduce((m, r) => (m.get(f(r)) || m.set(f(r), []).get(f(r))).push(r) && m, new Map());
 
+/* Cuotas por liga y, si FanDuel no viene en esa respuesta para algún partido, se pide ese partido solo.
+   (The Odds API a veces no incluye a FanDuel en la lista de la liga, sobre todo en selecciones; si no hay
+   cuotas, la consulta por partido no cuesta créditos.) */
+async function oddsById(k, rows, books, kind) {
+  const data = await apiGet(`/sports/${k}/odds`, oddsParams(books), kind, { allow404: true }) || [];
+  const byId = new Map(data.map(e => [e.id, e]));
+  const inList = new Set(byId.keys());
+  for (const e of rows) {
+    if (norm(byId.get(e.id))) continue;
+    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams(books), kind + '-partido', { allow404: true });
+    if (one && norm(one)) byId.set(e.id, one);
+  }
+  return { byId, inList };
+}
+
 async function extrasFor(k, id, kind) {
   return norm(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams('fanduel', EXTRA_SOC), kind, { allow404: true }));
 }
 
 /* Líneas de jugadores NBA: puntos, rebotes y asistencias (principal y alternativas) */
 const NBA = 'basketball_nba';
-const PROPS = 'player_points,player_rebounds,player_assists,player_points_alternate,player_rebounds_alternate,player_assists_alternate';
+// Grupos separados: si FanDuel o la API no tienen un mercado, los demás grupos siguen funcionando.
+const PROP_GROUPS = [
+  ['points', 'rebounds', 'assists'],
+  ['threes', 'points_rebounds_assists'],
+  ['points_rebounds', 'points_assists', 'rebounds_assists'],
+  ['steals', 'blocks', 'turnovers']
+].map(g => g.flatMap(m => [`player_${m}`, `player_${m}_alternate`]).join(','));
+function mergeProps(a, b) {
+  if (!a) return b; if (!b) return a;
+  for (const bk in b) a[bk] = { ...(a[bk] || {}), ...b[bk] };
+  return a;
+}
 export async function fetchProps(e, kind) {
-  const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams(bookList(), PROPS), kind, { allow404: true });
-  const p = normProps(j), t = Date.now();
+  let p = null;
+  for (const markets of PROP_GROUPS) {
+    try {
+      const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams(bookList(), markets), kind, { allow404: true });
+      p = mergeProps(p, normProps(j));
+    } catch (err) { if (err.fatal) throw err; }
+  }
+  const t = Date.now();
   const f = { props_t: new Date(t) };
   if (p) { f.props = { t, by: p }; if (!e.props_open) f.props_open = { t, by: p }; }
   await updateEvent(e.id, f);
@@ -59,15 +91,6 @@ async function propsProbe() {
   return false;
 }
 
-/* 0) Competiciones internacionales activas (consulta gratis a The Odds API). */
-async function refreshIntl() {
-  const list = await apiGet('/sports', {}, 'deportes') || [];
-  const intl = list.filter(s => isIntlKey(s.key) && !s.has_outrights).map(s => ({ k: s.key, n: s.title }))
-    .sort((a, b) => a.n.localeCompare(b.n));
-  SPORTS.intl.splice(0, SPORTS.intl.length, ...intl);
-  return true;
-}
-
 /* 1) Vigilancia: detecta cuándo FanDuel publica cada partido y guarda la apertura. */
 async function watchJob() {
   const cfg = await getConfig();
@@ -80,8 +103,7 @@ async function watchJob() {
     const due = rows.filter(e => !e.open_snap &&
       (!e.last_check || now - e.last_check.getTime() >= Math.min(6 * 3600e3, 30 * 60e3 * 2 ** Math.min(e.checks, 4))));
     if (!due.length) continue;
-    const data = await apiGet(`/sports/${k}/odds`, oddsParams(), 'apertura', { allow404: true }) || [];
-    const byId = new Map(data.map(e => [e.id, e]));
+    const { byId } = await oddsById(k, due, 'fanduel', 'apertura');
     const t = Date.now();
     for (const e of due) {
       const o = norm(byId.get(e.id));
@@ -103,8 +125,7 @@ export async function beforeJob(onlyMissing = false) {
   const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (!onlyMissing || !e.before_snap));
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
-    const data = await apiGet(`/sports/${k}/odds`, oddsParams(), 'dia-antes', { allow404: true }) || [];
-    const byId = new Map(data.map(e => [e.id, e]));
+    const { byId } = await oddsById(k, list, 'fanduel', 'dia-antes');
     const t = Date.now();
     for (const e of list) {
       const o = norm(byId.get(e.id));
@@ -128,8 +149,7 @@ export async function closeJob() {
   if (!rows.length) return false;
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
-    const data = await apiGet(`/sports/${k}/odds`, oddsParams(bookList(cfg)), 'cierre', { allow404: true }) || [];
-    const byId = new Map(data.map(e => [e.id, e]));
+    const { byId } = await oddsById(k, list, bookList(), 'cierre');
     const t = Date.now();
     for (const e of list) {
       const ev = byId.get(e.id), o = norm(ev);
@@ -176,16 +196,16 @@ export async function liveJob(forceTab) {
         changed = true;
       }
     }
-    const data = await apiGet(`/sports/${k}/odds`, oddsParams(bookList(cfg)), 'en-vivo', { allow404: true }) || [];
-    const byId = new Map(data.map(e => [e.id, e]));
+    const { byId, inList } = await oddsById(k, list.filter(e => !e.ended), bookList(), 'en-vivo');
     const t = Date.now();
     for (const e of list) {
       if (e.ended) continue;
       const ev = byId.get(e.id);
       const started = e.commence.getTime() <= t;
-      if (!ev) { if (started) { await updateEvent(e.id, { ended: true }); changed = true; } continue; }
+      if (!ev && !inList.has(e.id)) { if (started) { await updateEvent(e.id, { ended: true }); changed = true; } continue; }
       const o = norm(ev);
-      if (!o) continue;
+      if (!o) { state.missing.add(e.id); continue; }
+      state.missing.delete(e.id);
       let xo = e.xo, xt = e.xt ? e.xt.getTime() : 0;
       if (isSoc(cfg, k) && t - xt >= 10 * 60e3) {
         const x = await extrasFor(k, e.id, 'en-vivo-extras');
@@ -195,7 +215,6 @@ export async function liveJob(forceTab) {
       await updateEvent(e.id, { live_snap: snap, books: { t, by: allBooks(ev), inplay: started } });
       if (t - (liveSnapAt.get(e.id) || 0) >= 10 * 60e3) { liveSnapAt.set(e.id, t); await addSnapshot(e.id, started ? 'live' : 'gameday', snap); }
       changed = true;
-      if (k === NBA && (!e.props_t || t - e.props_t.getTime() >= 30 * 60e3)) await fetchProps(e, 'props-en-vivo');
     }
   }
   return changed;
@@ -209,8 +228,7 @@ export async function refreshUpcoming(tab) {
   for (const k of trackedKeys(cfg, tab)) {
     const rows = (await eventsBySports([k], now, now + 30 * DAY)).filter(e => dayKey(e.commence) !== today);
     if (!rows.length) continue;
-    const data = await apiGet(`/sports/${k}/odds`, oddsParams(), 'actualizar', { allow404: true }) || [];
-    const byId = new Map(data.map(e => [e.id, e]));
+    const { byId } = await oddsById(k, rows, 'fanduel', 'actualizar');
     const t = Date.now();
     for (const e of rows) {
       const o = norm(byId.get(e.id));
@@ -268,7 +286,6 @@ async function tick() {
   const cfg = await getConfig();
   const now = Date.now(), dk = dayKey(now);
   const [h, m] = hhmm(now).split(':').map(Number), mins = h * 60 + m;
-  if (now - state.lastIntl >= 6 * 3600e3) { state.lastIntl = now; run('internacional', refreshIntl); }
   if (now - state.lastWatch >= cfg.watchMin * 60e3) { state.lastWatch = now; run('vigilancia', watchJob); }
   if (now - state.lastProps >= 30 * 60e3) { state.lastProps = now; run('props', propsProbe); }
   // Día antes: desde las 6:00 pm guarda los partidos de mañana que aún no tengan lectura (revisa cada 30 min,
