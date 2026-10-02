@@ -72,12 +72,6 @@ export async function getConfig() {
   const r = await q(`select value from settings where key = 'config'`);
   const stored = r.rows[0] ? r.rows[0].value : {};
   cfgCache = { ...DEFAULT_CONFIG, ...stored, sports: { ...DEFAULT_CONFIG.sports, ...(stored.sports || {}) } };
-  // Una sola vez: activa la Nations League dentro de Fútbol europeo aunque ya hubiera ajustes guardados.
-  if (r.rows[0] && !stored.nlAdded) {
-    cfgCache.leagues = [...new Set([...(cfgCache.leagues || []), 'soccer_uefa_nations_league'])];
-    cfgCache.nlAdded = true;
-    await q(`update settings set value = $1 where key = 'config'`, [cfgCache]);
-  }
   return cfgCache;
 }
 export async function setConfig(patch) {

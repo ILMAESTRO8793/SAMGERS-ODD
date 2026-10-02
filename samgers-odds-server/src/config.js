@@ -18,7 +18,6 @@ export const SPORTS = {
     { k: 'soccer_uefa_champs_league', n: 'Champions League' },
     { k: 'soccer_uefa_europa_league', n: 'Europa League' },
     { k: 'soccer_uefa_europa_conference_league', n: 'Conference League' },
-    { k: 'soccer_uefa_nations_league', n: 'Nations League (UEFA)' },
     { k: 'soccer_netherlands_eredivisie', n: 'Eredivisie' },
     { k: 'soccer_portugal_primeira_liga', n: 'Primeira Liga' }
   ]
@@ -29,7 +28,7 @@ export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere' };
 export const DEFAULT_CONFIG = {
   sports: { nfl: true, ncaaf: true, nba: true, soc: true },
   leagues: ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga',
-    'soccer_france_ligue_one', 'soccer_uefa_champs_league', 'soccer_uefa_nations_league'],
+    'soccer_france_ligue_one', 'soccer_uefa_champs_league'],
   books: ['fanduel', 'codere_it'],
   extras: true,
   ladder: '0.5, 1.5, 2.5, 3.5',
