@@ -119,10 +119,11 @@ async function watchJob() {
 }
 
 /* 2) Día antes: última cuota del día anterior al partido (18:00 y 23:50, hora de Panamá). */
-export async function beforeJob(onlyMissing = false) {
+// mode: 'missing' = solo partidos sin lectura (con BTTS/goles) · 'update' = refresca todos (sin pedir BTTS/goles otra vez) · 'final' = 11:50 pm, todo
+export async function beforeJob(mode = 'final') {
   const cfg = await getConfig();
   const now = Date.now(), tomorrow = dayKey(now + DAY);
-  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (!onlyMissing || !e.before_snap));
+  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (mode !== 'missing' || !e.before_snap));
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
     const { byId } = await oddsById(k, list, 'fanduel', 'dia-antes');
@@ -131,7 +132,11 @@ export async function beforeJob(onlyMissing = false) {
       const o = norm(byId.get(e.id));
       if (!o) continue;
       const snap = { t, o, src: 'live' };
-      if (isSoc(cfg, k)) { const x = await extrasFor(k, e.id, 'dia-antes-extras'); if (x) { snap.o = withExtras(o, x); await updateEvent(e.id, { xo: x, xt: new Date(t) }); } }
+      if (isSoc(cfg, k)) {
+        const x = mode === 'update' ? null : await extrasFor(k, e.id, 'dia-antes-extras');
+        if (x) { snap.o = withExtras(o, x); await updateEvent(e.id, { xo: x, xt: new Date(t) }); }
+        else if (e.xo) snap.o = withExtras(o, e.xo);
+      }
       if (!e.open_snap) await updateEvent(e.id, { open_snap: snap, pub_at: new Date(t), pub_from: e.last_check });
       await updateEvent(e.id, { before_snap: snap });
       await addSnapshot(e.id, 'before', snap);
@@ -223,7 +228,7 @@ export async function liveJob(forceTab) {
 /* Cuota actual de los partidos que aún no son hoy (al tocar "Actualizar ahora"): 3 créditos por liga. */
 export async function refreshUpcoming(tab) {
   const cfg = await getConfig();
-  const now = Date.now(), today = dayKey(now);
+  const now = Date.now(), today = dayKey(now), tomorrow = dayKey(now + DAY);
   let changed = false;
   for (const k of trackedKeys(cfg, tab)) {
     const rows = (await eventsBySports([k], now, now + 30 * DAY)).filter(e => dayKey(e.commence) !== today);
@@ -235,8 +240,15 @@ export async function refreshUpcoming(tab) {
       if (!o) continue;
       const snap = { t, o, src: 'live' };
       if (!e.open_snap) await updateEvent(e.id, { open_snap: snap, pub_at: new Date(t), pub_from: e.last_check });
-      await updateEvent(e.id, { cur_snap: snap });
-      await addSnapshot(e.id, 'current', snap);
+      // Si el partido es mañana, esta lectura también es la del "día antes".
+      if (dayKey(e.commence) === tomorrow) {
+        const b = { ...snap, o: isSoc(cfg, k) && e.xo ? withExtras(o, e.xo) : o };
+        await updateEvent(e.id, { cur_snap: snap, before_snap: b });
+        await addSnapshot(e.id, 'before', b);
+      } else {
+        await updateEvent(e.id, { cur_snap: snap });
+        await addSnapshot(e.id, 'current', snap);
+      }
       changed = true;
     }
   }
@@ -288,11 +300,17 @@ async function tick() {
   const [h, m] = hhmm(now).split(':').map(Number), mins = h * 60 + m;
   if (now - state.lastWatch >= cfg.watchMin * 60e3) { state.lastWatch = now; run('vigilancia', watchJob); }
   if (now - state.lastProps >= 30 * 60e3) { state.lastProps = now; run('props', propsProbe); }
-  // Día antes: desde las 6:00 pm guarda los partidos de mañana que aún no tengan lectura (revisa cada 30 min,
-  // así no se pierde aunque el servidor se reinicie), y a las 11:50 pm guarda la última cuota del día.
-  if (mins >= 18 * 60 && now - state.lastBefore >= 30 * 60e3) { state.lastBefore = now; run('dia-antes', () => beforeJob(true)); }
+  // Día antes (el día anterior al partido, hora de Panamá):
+  // - a cualquier hora, cada 30 min, guarda los partidos de mañana que aún no tengan lectura;
+  // - a las 6 am, 12 pm y 6 pm la actualiza con la cuota del momento;
+  // - a las 11:50 pm guarda la última cuota del día.
+  if (now - state.lastBefore >= 30 * 60e3) { state.lastBefore = now; run('dia-antes', () => beforeJob('missing')); }
+  for (const at of [6 * 60, 12 * 60, 18 * 60]) {
+    const k2 = dk + '@' + at;
+    if (mins >= at && mins < at + 30 && !state.done.has(k2)) { state.done.add(k2); run('dia-antes-update', () => beforeJob('update')); }
+  }
   const key = dk + '@2350';
-  if (mins >= 23 * 60 + 50 && !state.done.has(key)) { state.done.add(key); run('dia-antes-final', () => beforeJob(false)); }
+  if (mins >= 23 * 60 + 50 && !state.done.has(key)) { state.done.add(key); run('dia-antes-final', () => beforeJob('final')); }
   run('cierre', closeJob);
   if (viewers.size && now - state.lastLive >= cfg.liveSec * 1000) { state.lastLive = now; run('en-vivo', () => liveJob()); }
   if (mins === 4 * 60 && !state.done.has(dk + '@prune')) { state.done.add(dk + '@prune'); run('limpieza', async () => { await prune(); return false; }); }
