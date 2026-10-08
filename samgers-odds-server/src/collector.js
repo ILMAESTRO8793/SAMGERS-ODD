@@ -1,6 +1,6 @@
 import { FEATURED, EXTRA_SOC, DAY, BOOKS, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
-import { apiGet, norm, allBooks, withExtras, normProps } from './odds.js';
+import { apiGet, norm, normFD, extrasFD, allBooks, withExtras, normProps } from './odds.js';
 
 export const state = { missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
@@ -46,7 +46,7 @@ async function oddsById(k, rows, books, kind) {
 }
 
 async function extrasFor(k, id, kind) {
-  return norm(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams('fanduel', EXTRA_SOC), kind, { allow404: true }));
+  return extrasFD(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams(bookList(), EXTRA_SOC), kind, { allow404: true }));
 }
 
 /* Líneas de jugadores NBA: puntos, rebotes y asistencias (principal y alternativas) */
@@ -103,10 +103,10 @@ async function watchJob() {
     const due = rows.filter(e => !e.open_snap &&
       (!e.last_check || now - e.last_check.getTime() >= Math.min(6 * 3600e3, 30 * 60e3 * 2 ** Math.min(e.checks, 4))));
     if (!due.length) continue;
-    const { byId } = await oddsById(k, due, 'fanduel', 'apertura');
+    const { byId } = await oddsById(k, due, bookList(), 'apertura');
     const t = Date.now();
     for (const e of due) {
-      const o = norm(byId.get(e.id));
+      const o = normFD(byId.get(e.id));
       if (!o) { await updateEvent(e.id, { last_check: new Date(t), checks: e.checks + 1 }); continue; }
       const snap = { t, o, src: 'live' };
       if (isSoc(cfg, k)) { const x = await extrasFor(k, e.id, 'apertura-extras'); if (x) snap.o = withExtras(o, x); }
@@ -126,10 +126,10 @@ export async function beforeJob(mode = 'final') {
   const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (mode !== 'missing' || !e.before_snap));
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
-    const { byId } = await oddsById(k, list, 'fanduel', 'dia-antes');
+    const { byId } = await oddsById(k, list, bookList(), 'dia-antes');
     const t = Date.now();
     for (const e of list) {
-      const o = norm(byId.get(e.id));
+      const o = normFD(byId.get(e.id));
       if (!o) continue;
       const snap = { t, o, src: 'live' };
       if (isSoc(cfg, k)) {
@@ -157,7 +157,7 @@ export async function closeJob() {
     const { byId } = await oddsById(k, list, bookList(), 'cierre');
     const t = Date.now();
     for (const e of list) {
-      const ev = byId.get(e.id), o = norm(ev);
+      const ev = byId.get(e.id), o = normFD(ev);
       if (o) {
         const snap = { t, o: withExtras(o, e.xo), src: 'live', inplay: false };
         await updateEvent(e.id, { live_snap: snap, books: { t, by: allBooks(ev), inplay: false } });
@@ -208,7 +208,7 @@ export async function liveJob(forceTab) {
       const ev = byId.get(e.id);
       const started = e.commence.getTime() <= t;
       if (!ev && !inList.has(e.id)) { if (started) { await updateEvent(e.id, { ended: true }); changed = true; } continue; }
-      const o = norm(ev);
+      const o = normFD(ev);
       if (!o) { state.missing.add(e.id); continue; }
       state.missing.delete(e.id);
       let xo = e.xo, xt = e.xt ? e.xt.getTime() : 0;
@@ -233,10 +233,10 @@ export async function refreshUpcoming(tab) {
   for (const k of trackedKeys(cfg, tab)) {
     const rows = (await eventsBySports([k], now, now + 30 * DAY)).filter(e => dayKey(e.commence) !== today);
     if (!rows.length) continue;
-    const { byId } = await oddsById(k, rows, 'fanduel', 'actualizar');
+    const { byId } = await oddsById(k, rows, bookList(), 'actualizar');
     const t = Date.now();
     for (const e of rows) {
-      const o = norm(byId.get(e.id));
+      const o = normFD(byId.get(e.id));
       if (!o) continue;
       const snap = { t, o, src: 'live' };
       if (!e.open_snap) await updateEvent(e.id, { open_snap: snap, pub_at: new Date(t), pub_from: e.last_check });

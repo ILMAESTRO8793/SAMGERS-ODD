@@ -61,13 +61,44 @@ export function allBooks(ev) {
 
 export function withExtras(o, x) {
   if (!o || !x) return o;
-  const out = { ...o };
+  const out = { ...o, _from: { ...(o._from || {}) } };
+  const xf = x._from || {};
   for (const k in x) {
-    if (k === 'tmain') continue;
-    if (k === 'totals') out.totals = { ...x.totals, ...(o.totals || {}) };
-    else out[k] = x[k];
+    if (k === 'tmain' || k === '_from') continue;
+    if (k === 'totals') {
+      // Líneas de goles de Codere solo si FanDuel no tiene ninguna línea de goles.
+      if (xf.totals && o.totals && !(o._from && o._from.totals)) continue;
+      out.totals = { ...x.totals, ...(o.totals || {}) };
+      if (xf.totals && !o.totals) out._from.totals = xf.totals;
+    } else { out[k] = x[k]; if (xf[k]) out._from[k] = xf[k]; else delete out._from[k]; }
   }
+  if (!Object.keys(out._from).length) delete out._from;
   return out;
+}
+
+/* FanDuel primero. Si FanDuel no trae handicap, goles o BTTS en ese partido, se toman de Codere y se marcan. */
+const FILL = ['spreads', 'totals', 'btts'];
+export function normFD(ev) {
+  const f = norm(ev, 'fanduel');
+  if (!f) return null;
+  const c = norm(ev, 'codere_it');
+  if (c) for (const mk of FILL) {
+    if (!f[mk] && c[mk]) {
+      f[mk] = c[mk];
+      if (mk === 'totals' && c.tmain != null) f.tmain = c.tmain;
+      (f._from = f._from || {})[mk] = 'codere_it';
+    }
+  }
+  return f;
+}
+export function extrasFD(ev) {
+  const f = norm(ev, 'fanduel') || {}, c = norm(ev, 'codere_it') || {};
+  const out = {};
+  for (const mk of ['btts', 'totals']) {
+    if (f[mk]) out[mk] = f[mk];
+    else if (c[mk]) { out[mk] = c[mk]; (out._from = out._from || {})[mk] = 'codere_it'; }
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 /* Líneas de jugadores (NBA): { fanduel: { points: { 'Jugador': { main:{pt,o,u}, alts:{ '24.5':{pt,o,u} } } } } } */
