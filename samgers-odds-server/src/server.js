@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SPORTS, BOOKS, TZ, DAY, trackedKeys } from './config.js';
+import { SPORTS, BOOKS, TZ, DAY, trackedKeys, isActive } from './config.js';
 import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24 } from './db.js';
 import { quota } from './odds.js';
 import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
@@ -83,7 +83,7 @@ async function statusInfo() {
   };
 }
 
-app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, sports: SPORTS, books: BOOKS, config: await getConfig() })));
+app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, sports: { ...SPORTS, soc: SPORTS.soc.filter(l => isActive(l.k)) }, books: BOOKS, config: await getConfig() })));
 
 app.get('/api/events', wrap(async (req, res) => {
   const cfg = await getConfig();
@@ -99,7 +99,11 @@ app.get('/api/status', wrap(async (req, res) => res.json(await statusInfo())));
 app.put('/api/config', wrap(async (req, res) => {
   const b = req.body || {}, patch = {};
   if (b.sports) patch.sports = Object.fromEntries(Object.keys(SPORTS).map(t => [t, !!b.sports[t]]));
-  if (Array.isArray(b.leagues)) patch.leagues = b.leagues.filter(k => SPORTS.soc.some(l => l.k === k));
+  if (Array.isArray(b.leagues)) {
+    // Las ligas fuera de temporada no salen en Ajustes: se conservan como estaban.
+    const cur = await getConfig();
+    patch.leagues = [...new Set([...b.leagues.filter(k => SPORTS.soc.some(l => l.k === k)), ...(cur.leagues || []).filter(k => !isActive(k))])];
+  }
   if (Array.isArray(b.books)) patch.books = ['fanduel', ...b.books.filter(k => BOOKS[k] && k !== 'fanduel')];
   if (b.extras != null) patch.extras = !!b.extras;
   if (typeof b.ladder === 'string') patch.ladder = b.ladder.slice(0, 100);
@@ -112,7 +116,8 @@ app.put('/api/config', wrap(async (req, res) => {
 
 app.post('/api/refresh', wrap(async (req, res) => {
   const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab)));
+  const league = String(req.query.league || 'all');
+  await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab, league)));
   res.json({ ok: true, missing: state.missing.size, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
 }));
 
@@ -153,7 +158,7 @@ app.get('/api/stream', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
   res.write('retry: 5000\n\n');
   streams.set(id, res);
-  viewers.set(id, { tab });
+  viewers.set(id, { tab, league: String(req.query.league || 'all') });
   const ping = setInterval(() => res.write(': ping\n\n'), 25e3);
   req.on('close', () => { clearInterval(ping); streams.delete(id); viewers.delete(id); });
 });

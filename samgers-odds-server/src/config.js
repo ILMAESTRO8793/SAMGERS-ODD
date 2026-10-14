@@ -19,16 +19,47 @@ export const SPORTS = {
     { k: 'soccer_uefa_europa_league', n: 'Europa League' },
     { k: 'soccer_uefa_europa_conference_league', n: 'Conference League' },
     { k: 'soccer_netherlands_eredivisie', n: 'Eredivisie' },
-    { k: 'soccer_portugal_primeira_liga', n: 'Primeira Liga' }
+    { k: 'soccer_portugal_primeira_liga', n: 'Primeira Liga' },
+    { k: 'soccer_usa_mls', n: 'MLS' },
+    { k: 'soccer_efl_champ', n: 'Championship (Inglaterra)' },
+    { k: 'soccer_england_league1', n: 'League One (Inglaterra)' },
+    { k: 'soccer_england_league2', n: 'League Two (Inglaterra)' },
+    { k: 'soccer_fa_cup', n: 'FA Cup' },
+    { k: 'soccer_england_efl_cup', n: 'EFL Cup (Carabao)' },
+    { k: 'soccer_spain_segunda_division', n: 'LaLiga 2' },
+    { k: 'soccer_spain_copa_del_rey', n: 'Copa del Rey' },
+    { k: 'soccer_italy_serie_b', n: 'Serie B' },
+    { k: 'soccer_italy_coppa_italia', n: 'Coppa Italia' },
+    { k: 'soccer_germany_bundesliga2', n: '2. Bundesliga' },
+    { k: 'soccer_germany_liga3', n: '3. Liga' },
+    { k: 'soccer_germany_dfb_pokal', n: 'DFB-Pokal' },
+    { k: 'soccer_france_ligue_two', n: 'Ligue 2' },
+    { k: 'soccer_france_coupe_de_france', n: 'Coupe de France' },
+    { k: 'soccer_spl', n: 'Premiership (Escocia)' },
+    { k: 'soccer_belgium_first_div', n: 'Bélgica' },
+    { k: 'soccer_austria_bundesliga', n: 'Austria' },
+    { k: 'soccer_switzerland_superleague', n: 'Suiza' },
+    { k: 'soccer_denmark_superliga', n: 'Dinamarca' },
+    { k: 'soccer_norway_eliteserien', n: 'Noruega' },
+    { k: 'soccer_sweden_allsvenskan', n: 'Suecia (Allsvenskan)' },
+    { k: 'soccer_sweden_superettan', n: 'Suecia (Superettan)' },
+    { k: 'soccer_finland_veikkausliiga', n: 'Finlandia' },
+    { k: 'soccer_poland_ekstraklasa', n: 'Polonia' },
+    { k: 'soccer_greece_super_league', n: 'Grecia' },
+    { k: 'soccer_turkey_super_league', n: 'Turquía' },
+    { k: 'soccer_league_of_ireland', n: 'Irlanda' }
   ]
 };
+
+// Competiciones que The Odds API tiene activas ahora mismo (se actualiza sola cada 6 horas; consulta gratis).
+export const ACTIVE = { keys: null };
+export const isActive = k => !ACTIVE.keys || ACTIVE.keys.has(k);
 
 export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere' };
 
 export const DEFAULT_CONFIG = {
   sports: { nfl: true, ncaaf: true, nba: true, soc: true },
-  leagues: ['soccer_epl', 'soccer_spain_la_liga', 'soccer_italy_serie_a', 'soccer_germany_bundesliga',
-    'soccer_france_ligue_one', 'soccer_uefa_champs_league'],
+  leagues: null, // null = todas las ligas de fútbol de la lista
   books: ['fanduel', 'codere_it'],
   extras: true,
   ladder: '0.5, 1.5, 2.5, 3.5',
@@ -48,7 +79,7 @@ export const leagueName = k => {
 export function trackedKeys(cfg, tab) {
   const out = [];
   for (const t of ['nfl', 'ncaaf', 'nba']) if (cfg.sports[t] && (!tab || tab === t)) out.push(...SPORTS[t].map(l => l.k));
-  if (cfg.sports.soc && (!tab || tab === 'soc')) out.push(...SPORTS.soc.filter(l => cfg.leagues.includes(l.k)).map(l => l.k));
+  if (cfg.sports.soc && (!tab || tab === 'soc')) out.push(...SPORTS.soc.filter(l => cfg.leagues.includes(l.k) && isActive(l.k)).map(l => l.k));
   return out;
 }
 

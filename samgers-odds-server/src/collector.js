@@ -1,8 +1,8 @@
-import { FEATURED, EXTRA_SOC, DAY, BOOKS, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, normFD, extrasFD, allBooks, withExtras, normProps } from './odds.js';
 
-export const state = { missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
+export const state = { lastActive: 0, missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
 let notify = () => {};
 export const setNotifier = fn => { notify = fn; };
@@ -91,6 +91,13 @@ async function propsProbe() {
   return false;
 }
 
+/* 0) Qué competiciones tiene activas The Odds API (gratis). */
+async function refreshActive() {
+  const list = await apiGet('/sports', {}, 'deportes');
+  if (Array.isArray(list) && list.length) ACTIVE.keys = new Set(list.map(s => s.key));
+  return true;
+}
+
 /* 1) Vigilancia: detecta cuándo FanDuel publica cada partido y guarda la apertura. */
 async function watchJob() {
   const cfg = await getConfig();
@@ -172,20 +179,32 @@ export async function closeJob() {
 
 /* 4) En vivo: solo mientras alguien tenga la app abierta (o al pulsar Actualizar ahora). */
 const liveSnapAt = new Map();
-export async function liveJob(forceTab) {
+export async function liveJob(forceTab, forceLeague) {
   const cfg = await getConfig();
-  const tabs = forceTab ? new Set([forceTab]) : new Set([...viewers.values()].map(v => v.tab));
+  const views = forceTab ? [{ tab: forceTab, league: forceLeague || 'all' }] : [...viewers.values()];
+  const tabs = new Set(views.map(v => v.tab));
   if (!tabs.size) return false;
+  // Fútbol con "todas mis ligas": solo partidos jugándose o que empiezan en la próxima hora (muchas ligas = muchos créditos).
+  // Si eliges una liga en el selector, esa liga se actualiza completa.
+  const wide = new Set(), full = new Set();
+  for (const v of views) for (const k of trackedKeys(cfg, v.tab)) {
+    if (v.tab === 'soc' && v.league !== 'all') { if (k === v.league) full.add(k); }
+    else if (v.tab === 'soc' && !forceTab) wide.add(k); else full.add(k);
+  }
   if (!forceTab) {
     const used = await usedLast24();
     state.capHit = used >= cfg.dailyCap;
     if (state.capHit) return false;
   }
-  const keys = [...new Set([...tabs].flatMap(tb => trackedKeys(cfg, tb)))];
+  const keys = [...new Set([...full, ...wide])];
+  if (!keys.length) return false;
   const now = Date.now(), today = dayKey(now);
   const rows = (await eventsBySports(keys, now - 6 * 3600e3, now + 36 * 3600e3)).filter(e => {
     const c = e.commence.getTime();
-    return !e.ended && ((c > now && dayKey(c) === today) || (c <= now && now - c < 5 * 3600e3));
+    if (e.ended) return false;
+    if (c <= now) return now - c < 5 * 3600e3;
+    if (dayKey(c) !== today) return false;
+    return full.has(e.sport) || c - now <= 60 * 60e3;
   });
   if (!rows.length) return false;
   let changed = false;
@@ -298,6 +317,7 @@ async function tick() {
   const cfg = await getConfig();
   const now = Date.now(), dk = dayKey(now);
   const [h, m] = hhmm(now).split(':').map(Number), mins = h * 60 + m;
+  if (now - state.lastActive >= 6 * 3600e3) { state.lastActive = now; run('deportes', refreshActive); }
   if (now - state.lastWatch >= cfg.watchMin * 60e3) { state.lastWatch = now; run('vigilancia', watchJob); }
   if (now - state.lastProps >= 30 * 60e3) { state.lastProps = now; run('props', propsProbe); }
   // Día antes (el día anterior al partido, hora de Panamá):

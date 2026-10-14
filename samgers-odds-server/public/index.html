@@ -316,7 +316,7 @@ es: {
   booksTitle:'Casas de apuestas a comparar el día del partido', booksHint:'FanDuel siempre se incluye. Hasta 10 casas cuestan lo mismo que una sola.',
   watchTitle:'Vigilar publicaciones de FanDuel', watchLabel:'Revisar si FanDuel publicó partidos nuevos cada', optHour:'hora', opt2h:'2 horas', wSoc:'Fútbol (tus ligas)',
   watchHint:'La lista de partidos se consulta gratis. Solo se gastan créditos cuando FanDuel ya tiene línea: unos 3 por partido para guardar la apertura, y una lectura cada 3 horas el día antes y el día del partido. La vigilancia funciona mientras la app esté abierta en una computadora encendida (puede estar en otra pestaña).',
-  leaguesTitle:'Ligas de fútbol que sigues', extrasTitle:'Mercados extra', xSoc:'Fútbol: BTTS y líneas de goles', ladderHint:'Líneas de goles a mostrar (separadas por coma)',
+  leaguesTitle:'Ligas de fútbol que sigues (solo aparecen las que están en temporada)', extrasTitle:'Mercados extra', xSoc:'Fútbol: BTTS y líneas de goles', ladderHint:'Líneas de goles a mostrar (separadas por coma)',
   extrasHint:'Los mercados extra se piden partido por partido: unos 2 créditos por partido de fútbol en cada lectura. Para ahorrar, se vuelven a pedir como máximo cada 3 horas el día antes y el día del partido. La línea principal siempre aparece aunque no esté en tu lista.',
   autoRef:'Actualizar sola cada 30 minutos mientras la app está abierta', dataTitle:'Datos', csv:'Exportar CSV', backup:'Descargar respaldo', restore:'Restaurar respaldo', clear:'Borrar historial', save:'Guardar',
   saveFail:'No se pudo guardar en el navegador: {m}',
@@ -359,7 +359,7 @@ en: {
   booksTitle:'Sportsbooks to compare on game day', booksHint:'FanDuel is always included. Up to 10 books cost the same as one.',
   watchTitle:'Watch for new FanDuel lines', watchLabel:'Check whether FanDuel posted new games every', optHour:'hour', opt2h:'2 hours', wSoc:'Soccer (your leagues)',
   watchHint:'The game list is free to check. Credits are only spent once FanDuel has a line: about 3 per game to save the opening, and one read every 3 hours on the day before and on game day. Watching works while the app is open on a computer that stays on (it can be in another tab).',
-  leaguesTitle:'Soccer leagues you follow', extrasTitle:'Extra markets', xSoc:'Soccer: BTTS and goal lines', ladderHint:'Goal lines to show (comma separated)',
+  leaguesTitle:'Soccer leagues you follow (only leagues in season are shown)', extrasTitle:'Extra markets', xSoc:'Soccer: BTTS and goal lines', ladderHint:'Goal lines to show (comma separated)',
   extrasHint:'Extra markets are requested game by game: about 2 credits per soccer game per read. To save credits, they are refreshed at most every 3 hours on the day before and on game day. The main line always shows even if it is not on your list.',
   autoRef:'Update automatically every 30 minutes while the app is open', dataTitle:'Data', csv:'Export CSV', backup:'Download backup', restore:'Restore backup', clear:'Clear history', save:'Save',
   saveFail:'Could not save in the browser: {m}',
@@ -503,7 +503,7 @@ let es = null;
 function openStream(){
   closeStream();
   if (!USER || document.visibilityState !== 'visible') return;
-  es = new EventSource('/api/stream?tab=' + ui.tab);
+  es = new EventSource('/api/stream?tab=' + ui.tab + '&league=' + encodeURIComponent(ui.tab === 'soc' ? ui.league : 'all'));
   es.addEventListener('update', loadSoon);
 }
 function closeStream(){ if (es) { es.close(); es = null; } }
@@ -763,11 +763,11 @@ document.getElementById('mktSeg').addEventListener('click', e => { const b = e.t
 document.getElementById('viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.view = b.dataset.v; saveLocal(); render(); });
 document.getElementById('fmtSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.fmt = b.dataset.f; saveLocal(); render(); });
 document.getElementById('langSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.lang = b.dataset.l; saveLocal(); render(); });
-document.getElementById('leagueSel').addEventListener('change', e => { ui.league = e.target.value; saveLocal(); render(); });
+document.getElementById('leagueSel').addEventListener('change', e => { ui.league = e.target.value; saveLocal(); render(); openStream(); });
 document.getElementById('btnRefresh').addEventListener('click', async () => {
   const btn = document.getElementById('btnRefresh');
   busy = true; btn.disabled = true; btn.textContent = t('refreshing');
-  try { const j = await api('/api/refresh?tab=' + ui.tab, { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else if (j.missing) toast(t('missingFd', { n: j.missing }), 8000); else toast(t('updated')); await load(); }
+  try { const j = await api('/api/refresh?tab=' + ui.tab + '&league=' + encodeURIComponent(ui.tab === 'soc' ? ui.league : 'all'), { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else if (j.missing) toast(t('missingFd', { n: j.missing }), 8000); else toast(t('updated')); await load(); }
   catch (e) { if (!e.auth) toast(e.message, 7000); }
   busy = false; btn.disabled = false; btn.textContent = t('refresh');
 });

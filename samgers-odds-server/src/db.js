@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { DEFAULT_CONFIG, dayKey } from './config.js';
+import { DEFAULT_CONFIG, SPORTS, dayKey } from './config.js';
 
 const url = process.env.DATABASE_URL;
 if (!url) { console.error('Falta DATABASE_URL'); process.exit(1); }
@@ -72,6 +72,13 @@ export async function getConfig() {
   const r = await q(`select value from settings where key = 'config'`);
   const stored = r.rows[0] ? r.rows[0].value : {};
   cfgCache = { ...DEFAULT_CONFIG, ...stored, sports: { ...DEFAULT_CONFIG.sports, ...(stored.sports || {}) } };
+  if (!Array.isArray(cfgCache.leagues)) cfgCache.leagues = SPORTS.soc.map(l => l.k);
+  // Una sola vez: activa la MLS y todas las ligas europeas nuevas aunque ya hubiera ajustes guardados.
+  if (r.rows[0] && !stored.allLeaguesAdded) {
+    cfgCache.leagues = [...new Set([...cfgCache.leagues, ...SPORTS.soc.map(l => l.k)])];
+    cfgCache.allLeaguesAdded = true;
+    await q(`update settings set value = $1 where key = 'config'`, [cfgCache]);
+  }
   return cfgCache;
 }
 export async function setConfig(patch) {
