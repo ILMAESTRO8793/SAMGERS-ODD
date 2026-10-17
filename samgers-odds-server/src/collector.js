@@ -2,7 +2,7 @@ import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, trackedKeys, dayKey, hhmm } fr
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, normFD, extrasFD, allBooks, withExtras, normProps } from './odds.js';
 
-export const state = { lastActive: 0, missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
+export const state = { noFd: new Map(), lastActive: 0, missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
 let notify = () => {};
 export const setNotifier = fn => { notify = fn; };
@@ -39,8 +39,11 @@ async function oddsById(k, rows, books, kind) {
   const inList = new Set(byId.keys());
   for (const e of rows) {
     if (norm(byId.get(e.id))) continue;
-    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams(books), kind + '-partido', { allow404: true });
+    // Solo FanDuel: si FanDuel no tiene ese partido, la consulta no cuesta créditos.
+    if (state.noFd.get(e.id) > Date.now()) continue;
+    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams('fanduel'), kind + '-partido', { allow404: true });
     if (one && norm(one)) byId.set(e.id, one);
+    else state.noFd.set(e.id, Date.now() + 3 * 3600e3); // no volver a preguntar por ese partido en 3 horas
   }
   return { byId, inList };
 }
@@ -108,7 +111,7 @@ async function watchJob() {
     const now = Date.now();
     const rows = await eventsBySports([k], now, now + 30 * DAY);
     const due = rows.filter(e => !e.open_snap &&
-      (!e.last_check || now - e.last_check.getTime() >= Math.min(6 * 3600e3, 30 * 60e3 * 2 ** Math.min(e.checks, 4))));
+      (!e.last_check || now - e.last_check.getTime() >= Math.min(12 * 3600e3, 30 * 60e3 * 2 ** Math.min(e.checks, 5))));
     if (!due.length) continue;
     const { byId } = await oddsById(k, due, bookList(), 'apertura');
     const t = Date.now();
@@ -130,7 +133,7 @@ async function watchJob() {
 export async function beforeJob(mode = 'final') {
   const cfg = await getConfig();
   const now = Date.now(), tomorrow = dayKey(now + DAY);
-  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (mode !== 'missing' || !e.before_snap));
+  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => e.open_snap && dayKey(e.commence) === tomorrow && (mode !== 'missing' || !e.before_snap));
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
     const { byId } = await oddsById(k, list, bookList(), 'dia-antes');
@@ -157,7 +160,7 @@ export async function beforeJob(mode = 'final') {
 export async function closeJob() {
   const cfg = await getConfig();
   const now = Date.now();
-  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 10 * 60e3)).filter(e => !e.close_done);
+  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 10 * 60e3)).filter(e => !e.close_done && e.open_snap);
   if (!rows.length) return false;
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
@@ -201,7 +204,7 @@ export async function liveJob(forceTab, forceLeague) {
   const now = Date.now(), today = dayKey(now);
   const rows = (await eventsBySports(keys, now - 6 * 3600e3, now + 36 * 3600e3)).filter(e => {
     const c = e.commence.getTime();
-    if (e.ended) return false;
+    if (e.ended || !e.open_snap) return false;
     if (c <= now) return now - c < 5 * 3600e3;
     if (dayKey(c) !== today) return false;
     return full.has(e.sport) || c - now <= 60 * 60e3;
@@ -324,7 +327,7 @@ async function tick() {
   // - a cualquier hora, cada 30 min, guarda los partidos de mañana que aún no tengan lectura;
   // - a las 6 am, 12 pm y 6 pm la actualiza con la cuota del momento;
   // - a las 11:50 pm guarda la última cuota del día.
-  if (now - state.lastBefore >= 30 * 60e3) { state.lastBefore = now; run('dia-antes', () => beforeJob('missing')); }
+  if (now - state.lastBefore >= 2 * 3600e3) { state.lastBefore = now; run('dia-antes', () => beforeJob('missing')); }
   for (const at of [6 * 60, 12 * 60, 18 * 60]) {
     const k2 = dk + '@' + at;
     if (mins >= at && mins < at + 30 && !state.done.has(k2)) { state.done.add(k2); run('dia-antes-update', () => beforeJob('update')); }
