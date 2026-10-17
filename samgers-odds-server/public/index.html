@@ -442,6 +442,39 @@ Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd
   pNone:'No lines for this stat in this game yet. FanDuel usually posts props on game day; the server checks on its own every 2 hours.',
   pRefresh:'Update players', pUpdated:'Player lines updated: {t}', pOver:'Over', pUnder:'Under', pNoBook:'No {b} lines for this game.',
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
+
+Object.assign(I18N.es, {
+  tagline:'Líneas de FanDuel (NFL, NCAAF, NBA) y Codere (fútbol): apertura, día antes y día del partido',
+  legend:'Cada partido tiene tres líneas de la casa principal: FanDuel en NFL, NCAAF y NBA; Codere en fútbol. Apertura: la cuota del primer día en que la casa publica el partido; el servidor lo vigila todo el día y guarda la hora en que lo detectó. Día antes: la cuota del día anterior al partido; se va actualizando durante ese día y queda fija con la última de las 11:50 pm. Día del partido: la cuota actual, antes del inicio y en vivo. Mov. compara la apertura con la cuota más reciente: ▲ el pago subió, ▼ el pago bajó. En "Goles por equipo", sube o baja indica cuántos goles espera la casa para cada equipo.',
+  watchTitle:'Vigilar publicaciones nuevas', watchLabel:'Revisar si hay partidos nuevos publicados cada ',
+  watchHint:'Consultar la lista de partidos es gratis. Solo se gastan créditos cuando la casa principal ya publicó partidos sin apertura. También guarda el día antes durante todo el día anterior y la cuota de cierre justo antes de cada partido.',
+  newPub:'Se publicaron {n} partido(s) nuevo(s). Apertura guardada.', booksHint:'Hasta 10 casas cuestan lo mismo que una sola.',
+  confirmOpen:'Buscar la hora exacta en que {book} publicó la línea usa el histórico (plan pagado) y cuesta unos 150 créditos. ¿Continuar?',
+  noHist:'El histórico todavía no muestra línea de {book} para este partido.', openFound:'{book} la publicó cerca de {t}',
+  notYet:'{book} aún no publica este partido', pubBetween:'{book} lo publicó entre <b>{a}</b> y <b>{b}</b>',
+  noOdds:'{book} todavía no publica cuotas para este partido', watchEvery:' · Vigilando cada {m} min',
+  noGamesP:'El servidor todavía no tiene partidos para esta pestaña. Aparecerán solos en cuanto se publiquen.',
+  fromOther:'{book} ({main} no lo ofrece)',
+  missingFd:'Actualizado. La casa principal no está dando cuotas en este momento para {n} partido(s) de hoy; se intentará de nuevo en cada actualización.',
+  mkTeamGoals:'Goles por equipo (lo que espera la casa)', ttOver:'{team}: Más de', ttUnder:'{team}: Menos de', goalsUp:'sube', goalsDown:'baja'
+});
+Object.assign(I18N.en, {
+  tagline:'FanDuel (NFL, NCAAF, NBA) and Codere (soccer) lines: opening, day before and game day',
+  legend:'Each game has three lines from the main book: FanDuel for NFL, NCAAF and NBA; Codere for soccer. Opening: the odds from the first day the book posts the game; the server watches all day and saves the time it detected it. Day before: the odds on the day before the game; it updates during that day and locks with the last one at 11:50 pm. Game day: the current odds, before kickoff and live. Move compares the opening with the latest odds: ▲ the payout went up, ▼ the payout went down. In "Team goals", up or down shows how many goals the book expects from each team.',
+  watchTitle:'Watch for new games', watchLabel:'Check for newly posted games every ',
+  watchHint:'Checking the game list is free. Credits are only spent once the main book has posted games without an opening line. It also saves the day-before line throughout the previous day and the closing odds right before each game.',
+  newPub:'{n} new game(s) posted. Opening line saved.', booksHint:'Up to 10 books cost the same as one.',
+  confirmOpen:'Finding the exact time {book} posted the line uses history (paid plan) and costs about 150 credits. Continue?',
+  noHist:'History does not show a {book} line for this game yet.', openFound:'{book} posted it around {t}',
+  notYet:'{book} has not posted this game yet', pubBetween:'{book} posted it between <b>{a}</b> and <b>{b}</b>',
+  noOdds:'{book} has not posted odds for this game yet', watchEvery:' · Watching every {m} min',
+  noGamesP:'The server has no games for this tab yet. They will show up on their own as soon as they are posted.',
+  fromOther:'{book} (not offered by {main})',
+  missingFd:'Updated. The main book is not offering odds right now for {n} of today\'s game(s); it will retry on every update.',
+  mkTeamGoals:'Team goals (what the book expects)', ttOver:'{team}: Over', ttUnder:'{team}: Under', goalsUp:'up', goalsDown:'down'
+});
+const primaryOf = k => (String(k).startsWith('soccer_') ? 'codere_it' : 'fanduel');
+const bookOf = E => (BOOKS && BOOKS[primaryOf(E.sport)]) || primaryOf(E.sport);
 function t(k, v){ let s = (I18N[S.lang] || I18N.es)[k] ?? I18N.es[k] ?? k; if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]); return s; }
 const loc = () => S.lang === 'en' ? 'en-US' : 'es-PA';
 function applyStatic(){
@@ -529,7 +562,7 @@ function val(s, mk, key){
 function cell(s, mk, name){
   const v = val(s, mk, name);
   if (!v) return '<td><span class="empty">—</span></td>';
-  const showPt = mk === 'spreads' || name.endsWith('@main');
+  const showPt = mk === 'spreads' || mk === 'team_totals' || name.endsWith('@main');
   const pt = showPt ? `<span class="pt">${esc(mk === 'spreads' ? point(v.pt) : v.pt)}</span>` : '';
   return `<td>${pt}<span class="odd">${esc(price(v.p))}</span></td>`;
 }
@@ -537,9 +570,12 @@ function change(a, b, mk, name){
   const x = val(a, mk, name), y = val(b, mk, name);
   if (!x || !y || a === b) return '<td class="chg flat">—</td>';
   const parts = [];
-  if (x.pt != null && y.pt != null && x.pt !== y.pt) { const f = mk === 'spreads' ? point : (p => String(p)); parts.push(`${t('line')} ${f(x.pt)} → ${f(y.pt)}`); }
-  let cls = 'flat';
-  if (Math.abs(y.p - x.p) >= 0.005) { cls = y.p > x.p ? 'up' : 'down'; parts.push((y.p > x.p ? '▲ ' : '▼ ') + price(x.p) + ' → ' + price(y.p)); }
+  if (x.pt != null && y.pt != null && x.pt !== y.pt) {
+    if (mk === 'team_totals') parts.push(`${y.pt > x.pt ? '▲ ' + t('goalsUp') : '▼ ' + t('goalsDown')} ${x.pt} → ${y.pt}`);
+    else { const f = mk === 'spreads' ? point : (p => String(p)); parts.push(`${t('line')} ${f(x.pt)} → ${f(y.pt)}`); }
+  }
+  let cls = mk === 'team_totals' && x.pt != null && y.pt != null && x.pt !== y.pt ? (y.pt > x.pt ? 'up' : 'down') : 'flat';
+  if (Math.abs(y.p - x.p) >= 0.005) { if (cls === 'flat') cls = y.p > x.p ? 'up' : 'down'; parts.push((y.p > x.p ? '▲ ' : '▼ ') + price(x.p) + ' → ' + price(y.p)); }
   return `<td class="chg ${cls}">${parts.length ? esc(parts.join(' · ')) : t('noChange')}</td>`;
 }
 function outcomeOrder(E, mk, names){
@@ -568,14 +604,15 @@ function mkLabel(E, mk){
   if (mk === 'h2h') return socLike(tb) ? t('mkH2hSoc') : 'Moneyline';
   if (mk === 'spreads') return t(socLike(tb) ? 'mkSpreadSoc' : 'mkSpreadUS');
   if (mk === 'btts') return t('mkBtts');
+  if (mk === 'team_totals') return t('mkTeamGoals');
   return t(socLike(tb) ? 'mkGoals' : 'mkPoints');
 }
 
 /* ---------- vista ---------- */
 function pubLine(E){
-  if (!E.snaps.open) return E.live ? '' : `<div class="pub wait"><b>${esc(t('notYet'))}</b>${E.chk ? ' · ' + esc(t('checked')) + ' ' + esc(fmtTime(E.chk)) : ''}</div>`;
+  if (!E.snaps.open) return E.live ? '' : `<div class="pub wait"><b>${esc(t('notYet', { book: bookOf(E) }))}</b>${E.chk ? ' · ' + esc(t('checked')) + ' ' + esc(fmtTime(E.chk)) : ''}</div>`;
   const p = E.pub;
-  if (p && p.from) return `<div class="pub">${t('pubBetween', {a: esc(fmtTime(p.from)), b: esc(fmtTime(p.at))})}${p.hist ? esc(t('histTag')) : ''}</div>`;
+  if (p && p.from) return `<div class="pub">${t('pubBetween', {book: esc(bookOf(E)), a: esc(fmtTime(p.from)), b: esc(fmtTime(p.at))})}${p.hist ? esc(t('histTag')) : ''}</div>`;
   return `<div class="pub">${esc(t('pubSeen', {t: fmtTime(E.snaps.open.t)}))}</div>`;
 }
 function booksHTML(E){
@@ -666,24 +703,28 @@ function gameHTML(E){
   const isToday = dayKey(E.c) === dayKey(Date.now());
   const soccer = socLike(tabOf(E.sport));
   const started = Date.now() >= E.c;
-  const mks = (ui.mkt === 'all' ? ['h2h','spreads','totals','btts'] : [ui.mkt]);
+  const mks = (ui.mkt === 'all' ? ['h2h','spreads','totals','team_totals','btts'] : ui.mkt === 'totals' ? ['totals','team_totals'] : [ui.mkt]);
   let body = '';
   for (const mk of mks) {
     let rows;
     if (mk === 'totals') rows = totalRows(E, [...cols, E.last]);
-    else {
+    else if (mk === 'team_totals') {
+      const have = new Set(); [...cols, E.last].forEach(x => x && x.o.team_totals && Object.keys(x.o.team_totals).forEach(n => have.add(n)));
+      rows = [E.home, E.away].flatMap(tm => ['Over', 'Under'].map(sd => ({ key: `${tm}|${sd}`, label: t(sd === 'Over' ? 'ttOver' : 'ttUnder', { team: tm }) }))).filter(r => have.has(r.key));
+    } else {
       const names = new Set();
       [...cols, E.last].forEach(s => s && s.o[mk] && Object.keys(s.o[mk]).forEach(n => names.add(n)));
       rows = outcomeOrder(E, mk, names).map(n => ({key:n, label:outLabel(n)}));
     }
     if (!rows.length) continue;
-    const fromC = [...cols, E.last].some(x => x && x.o && x.o._from && x.o._from[mk]);
-    body += `<tr class="mk"><td colspan="5">${esc(mkLabel(E, mk))}${fromC ? `<span class="tag">${esc(t('fromCodere'))}</span>` : ''}</td></tr>`;
+    const fromSnap = [...cols, E.last].find(x => x && x.o && x.o._from && x.o._from[mk]);
+    const fromK = fromSnap && fromSnap.o._from[mk];
+    body += `<tr class="mk"><td colspan="5">${esc(mkLabel(E, mk))}${fromK ? `<span class="tag">${esc(t('fromOther', { book: BOOKS[fromK] || fromK, main: bookOf(E) }))}</span>` : ''}</td></tr>`;
     for (const r of rows) {
       body += `<tr><td class="name">${esc(r.label)}${r.main ? `<span class="tag">${esc(t('main'))}</span>` : ''}</td>${cols.map(s => cell(s, mk, r.key)).join('')}${change(sn.open, latest, mk, r.key)}</tr>`;
     }
   }
-  if (!body) body = `<tr><td colspan="5" style="text-align:left;color:var(--muted)">${esc(t('noOdds'))}${ui.mkt !== 'all' ? esc(t('inMarket')) : ''}.</td></tr>`;
+  if (!body) body = `<tr><td colspan="5" style="text-align:left;color:var(--muted)">${esc(t('noOdds', { book: bookOf(E) }))}${ui.mkt !== 'all' ? esc(t('inMarket')) : ''}.</td></tr>`;
   const th = (label, s) => `<th>${esc(label)}<small>${s ? esc(fmtTime(s.t)) + (s.src === 'hist' ? ' · ' + t('histShort') : '') : esc(t('noReading'))}</small></th>`;
   const sc = E.score && E.score.h != null ? E.score : null;
   const teams = soccer
@@ -796,10 +837,11 @@ document.getElementById('list').addEventListener('click', async e => {
       const j = await api(`/api/events/${id}/fill-before`, { method: 'POST' });
       toast(j.ok ? t('filled') : t(j.reason));
     } else {
-      if (!confirm(t('confirmOpen'))) return;
+      const Eb = EV.find(x => x.id === b.dataset.id), book = Eb ? bookOf(Eb) : 'FanDuel';
+      if (!confirm(t('confirmOpen', { book }))) return;
       toast(t('searching'), 60000);
       const j = await api(`/api/events/${id}/find-opening`, { method: 'POST' });
-      toast(j.ok ? t(j.exact ? 'openFound' : 'openOld', { t: fmtTime(j.t) }) : t(j.reason), 7000);
+      toast(j.ok ? t(j.exact ? 'openFound' : 'openOld', { t: fmtTime(j.t), book }) : t(j.reason, { book }), 7000);
     }
     load();
   } catch (ex) { if (!ex.auth) toast(t('histErr') + ex.message, 7000); }

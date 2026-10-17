@@ -1,6 +1,7 @@
-import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, PRIMARY, OTHER, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
-import { apiGet, norm, normFD, extrasFD, allBooks, withExtras, normProps } from './odds.js';
+import { apiGet, norm, normMain, extrasMain, allBooks, withExtras, normProps } from './odds.js';
+const normFD = (ev, k) => normMain(ev, PRIMARY(k), OTHER(k));
 
 export const state = { noFd: new Map(), lastActive: 0, missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
@@ -38,18 +39,18 @@ async function oddsById(k, rows, books, kind) {
   const byId = new Map(data.map(e => [e.id, e]));
   const inList = new Set(byId.keys());
   for (const e of rows) {
-    if (norm(byId.get(e.id))) continue;
+    if (norm(byId.get(e.id), PRIMARY(k))) continue;
     // Solo FanDuel: si FanDuel no tiene ese partido, la consulta no cuesta créditos.
     if (state.noFd.get(e.id) > Date.now()) continue;
-    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams('fanduel'), kind + '-partido', { allow404: true });
-    if (one && norm(one)) byId.set(e.id, one);
+    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams(PRIMARY(k)), kind + '-partido', { allow404: true });
+    if (one && norm(one, PRIMARY(k))) byId.set(e.id, one);
     else state.noFd.set(e.id, Date.now() + 3 * 3600e3); // no volver a preguntar por ese partido en 3 horas
   }
   return { byId, inList };
 }
 
 async function extrasFor(k, id, kind) {
-  return extrasFD(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams(bookList(), EXTRA_SOC), kind, { allow404: true }));
+  return extrasMain(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams(bookList(), EXTRA_SOC), kind, { allow404: true }), PRIMARY(k), OTHER(k));
 }
 
 /* Líneas de jugadores NBA: puntos, rebotes y asistencias (principal y alternativas) */
@@ -116,7 +117,7 @@ async function watchJob() {
     const { byId } = await oddsById(k, due, bookList(), 'apertura');
     const t = Date.now();
     for (const e of due) {
-      const o = normFD(byId.get(e.id));
+      const o = normFD(byId.get(e.id), k);
       if (!o) { await updateEvent(e.id, { last_check: new Date(t), checks: e.checks + 1 }); continue; }
       const snap = { t, o, src: 'live' };
       if (isSoc(cfg, k)) { const x = await extrasFor(k, e.id, 'apertura-extras'); if (x) snap.o = withExtras(o, x); }
@@ -139,7 +140,7 @@ export async function beforeJob(mode = 'final') {
     const { byId } = await oddsById(k, list, bookList(), 'dia-antes');
     const t = Date.now();
     for (const e of list) {
-      const o = normFD(byId.get(e.id));
+      const o = normFD(byId.get(e.id), k);
       if (!o) continue;
       const snap = { t, o, src: 'live' };
       if (isSoc(cfg, k)) {
@@ -167,7 +168,7 @@ export async function closeJob() {
     const { byId } = await oddsById(k, list, bookList(), 'cierre');
     const t = Date.now();
     for (const e of list) {
-      const ev = byId.get(e.id), o = normFD(ev);
+      const ev = byId.get(e.id), o = normFD(ev, k);
       if (o) {
         const snap = { t, o: withExtras(o, e.xo), src: 'live', inplay: false };
         await updateEvent(e.id, { live_snap: snap, books: { t, by: allBooks(ev), inplay: false } });
@@ -230,7 +231,7 @@ export async function liveJob(forceTab, forceLeague) {
       const ev = byId.get(e.id);
       const started = e.commence.getTime() <= t;
       if (!ev && !inList.has(e.id)) { if (started) { await updateEvent(e.id, { ended: true }); changed = true; } continue; }
-      const o = normFD(ev);
+      const o = normFD(ev, k);
       if (!o) { state.missing.add(e.id); continue; }
       state.missing.delete(e.id);
       let xo = e.xo, xt = e.xt ? e.xt.getTime() : 0;
@@ -258,7 +259,7 @@ export async function refreshUpcoming(tab) {
     const { byId } = await oddsById(k, rows, bookList(), 'actualizar');
     const t = Date.now();
     for (const e of rows) {
-      const o = normFD(byId.get(e.id));
+      const o = normFD(byId.get(e.id), k);
       if (!o) continue;
       const snap = { t, o, src: 'live' };
       if (!e.open_snap) await updateEvent(e.id, { open_snap: snap, pub_at: new Date(t), pub_from: e.last_check });
@@ -268,8 +269,9 @@ export async function refreshUpcoming(tab) {
         await updateEvent(e.id, { cur_snap: snap, before_snap: b });
         await addSnapshot(e.id, 'before', b);
       } else {
-        await updateEvent(e.id, { cur_snap: snap });
-        await addSnapshot(e.id, 'current', snap);
+        const cs = isSoc(cfg, k) && e.xo ? { ...snap, o: withExtras(o, e.xo) } : snap;
+        await updateEvent(e.id, { cur_snap: cs });
+        await addSnapshot(e.id, 'current', cs);
       }
       changed = true;
     }
@@ -283,9 +285,9 @@ async function hist(e, ts, only) {
   const iso = new Date(ts).toISOString().replace(/\.\d{3}Z$/, 'Z');
   const markets = only || (FEATURED + (isSoc(cfg, e.sport) ? ',' + EXTRA_SOC : ''));
   const j = await apiGet(`/historical/sports/${e.sport}/events/${e.id}/odds`,
-    { regions: 'us', bookmakers: 'fanduel', markets, oddsFormat: 'decimal', date: iso }, 'historico', { allow404: true });
+    { regions: 'us', bookmakers: PRIMARY(e.sport), markets, oddsFormat: 'decimal', date: iso }, 'historico', { allow404: true });
   if (!j) return null;
-  const o = norm(j.data);
+  const o = norm(j.data, PRIMARY(e.sport));
   return o ? { t: Date.parse(j.timestamp), o, src: 'hist' } : null;
 }
 export async function findOpening(e) {

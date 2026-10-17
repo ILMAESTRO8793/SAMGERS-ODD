@@ -74,6 +74,14 @@ export async function getConfig() {
   cfgCache = { ...DEFAULT_CONFIG, ...stored, sports: { ...DEFAULT_CONFIG.sports, ...(stored.sports || {}) } };
   if (!Array.isArray(cfgCache.leagues)) cfgCache.leagues = SPORTS.soc.map(l => l.k);
   // Una sola vez: activa la MLS y todas las ligas europeas nuevas aunque ya hubiera ajustes guardados.
+  if (!stored.codereSoccer) {
+    // Una sola vez: el fútbol pasa de FanDuel a Codere; los partidos que faltan se vuelven a leer desde Codere.
+    await q(`update events set open_snap = null, before_snap = null, cur_snap = null, live_snap = null, books = null, xo = null, xt = null,
+             pub_at = null, pub_from = null, pub_hist = false, last_check = null, checks = 0, close_done = false
+             where sport like 'soccer_%' and commence > now()`);
+    cfgCache.codereSoccer = true;
+    await q(`insert into settings (key, value) values ('config', $1) on conflict (key) do update set value = excluded.value`, [{ ...stored, codereSoccer: true }]);
+  }
   if (r.rows[0] && !stored.allLeaguesAdded) {
     cfgCache.leagues = [...new Set([...cfgCache.leagues, ...SPORTS.soc.map(l => l.k)])];
     cfgCache.allLeaguesAdded = true;

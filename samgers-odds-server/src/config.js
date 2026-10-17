@@ -3,7 +3,10 @@ export const API_BASE = process.env.ODDS_API_BASE || 'https://api.the-odds-api.c
 export const API_KEY = process.env.ODDS_API_KEY || '';
 
 export const FEATURED = 'h2h,spreads,totals';
-export const EXTRA_SOC = 'btts,alternate_totals';
+export const EXTRA_SOC = 'btts,alternate_totals,team_totals';
+// Casa principal: Codere en fútbol, FanDuel en NFL, NCAAF y NBA.
+export const PRIMARY = k => (String(k).startsWith('soccer_') ? 'codere_it' : 'fanduel');
+export const OTHER = k => (PRIMARY(k) === 'fanduel' ? 'codere_it' : 'fanduel');
 
 export const SPORTS = {
   nfl: [{ k: 'americanfootball_nfl', n: 'NFL' }],

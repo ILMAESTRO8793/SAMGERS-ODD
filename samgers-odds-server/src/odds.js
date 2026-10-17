@@ -38,6 +38,7 @@ export function norm(ev, book = 'fanduel') {
   if (!b) return null;
   const o = {};
   for (const m of b.markets || []) {
+    if (m.key === 'alternate_team_totals') continue;
     const isTot = m.key === 'totals' || m.key === 'alternate_totals';
     const key = isTot ? 'totals' : m.key;
     o[key] = o[key] || {};
@@ -47,7 +48,8 @@ export function norm(ev, book = 'fanduel') {
         if (m.key === 'alternate_totals' && o.totals[k]) continue;
         o.totals[k] = { p: oc.price, pt: oc.point };
         if (m.key === 'totals') o.tmain = oc.point;
-      } else o[key][oc.name] = { p: oc.price, pt: oc.point };
+      } else if (m.key === 'team_totals') o.team_totals[`${oc.description}|${oc.name}`] = { p: oc.price, pt: oc.point };
+      else o[key][oc.name] = { p: oc.price, pt: oc.point };
     }
   }
   return Object.keys(o).length ? o : null;
@@ -76,27 +78,28 @@ export function withExtras(o, x) {
   return out;
 }
 
-/* FanDuel primero. Si FanDuel no trae handicap, goles o BTTS en ese partido, se toman de Codere y se marcan. */
-const FILL = ['spreads', 'totals', 'btts'];
-export function normFD(ev) {
-  const f = norm(ev, 'fanduel');
+/* Casa principal primero (Codere en fútbol, FanDuel en lo demás). Si no trae handicap, goles, BTTS
+   o goles por equipo en ese partido, se toman de la otra casa y se marcan. */
+const FILL = ['spreads', 'totals', 'btts', 'team_totals'];
+export function normMain(ev, primary, other) {
+  const f = norm(ev, primary);
   if (!f) return null;
-  const c = norm(ev, 'codere_it');
+  const c = norm(ev, other);
   if (c) for (const mk of FILL) {
     if (!f[mk] && c[mk]) {
       f[mk] = c[mk];
       if (mk === 'totals' && c.tmain != null) f.tmain = c.tmain;
-      (f._from = f._from || {})[mk] = 'codere_it';
+      (f._from = f._from || {})[mk] = other;
     }
   }
   return f;
 }
-export function extrasFD(ev) {
-  const f = norm(ev, 'fanduel') || {}, c = norm(ev, 'codere_it') || {};
+export function extrasMain(ev, primary, other) {
+  const f = norm(ev, primary) || {}, c = norm(ev, other) || {};
   const out = {};
-  for (const mk of ['btts', 'totals']) {
+  for (const mk of ['btts', 'totals', 'team_totals']) {
     if (f[mk]) out[mk] = f[mk];
-    else if (c[mk]) { out[mk] = c[mk]; (out._from = out._from || {})[mk] = 'codere_it'; }
+    else if (c[mk]) { out[mk] = c[mk]; (out._from = out._from || {})[mk] = other; }
   }
   return Object.keys(out).length ? out : null;
 }
