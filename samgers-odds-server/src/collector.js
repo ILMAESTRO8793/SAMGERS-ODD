@@ -134,7 +134,7 @@ async function watchJob() {
 export async function beforeJob(mode = 'final') {
   const cfg = await getConfig();
   const now = Date.now(), tomorrow = dayKey(now + DAY);
-  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => e.open_snap && dayKey(e.commence) === tomorrow && (mode !== 'missing' || !e.before_snap));
+  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 2 * DAY)).filter(e => dayKey(e.commence) === tomorrow && (mode !== 'missing' || (!e.before_snap && e.open_snap)));
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
     const { byId } = await oddsById(k, list, bookList(), 'dia-antes');
@@ -161,7 +161,7 @@ export async function beforeJob(mode = 'final') {
 export async function closeJob() {
   const cfg = await getConfig();
   const now = Date.now();
-  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 10 * 60e3)).filter(e => !e.close_done && e.open_snap);
+  const rows = (await eventsBySports(trackedKeys(cfg), now, now + 10 * 60e3)).filter(e => !e.close_done);
   if (!rows.length) return false;
   let changed = false;
   for (const [k, list] of groupBy(rows, r => r.sport)) {
@@ -205,7 +205,7 @@ export async function liveJob(forceTab, forceLeague) {
   const now = Date.now(), today = dayKey(now);
   const rows = (await eventsBySports(keys, now - 6 * 3600e3, now + 36 * 3600e3)).filter(e => {
     const c = e.commence.getTime();
-    if (e.ended || !e.open_snap) return false;
+    if (e.ended) return false;
     if (c <= now) return now - c < 5 * 3600e3;
     if (dayKey(c) !== today) return false;
     return full.has(e.sport) || c - now <= 60 * 60e3;

@@ -725,7 +725,7 @@ function gameHTML(E){
     }
   }
   if (!body) body = `<tr><td colspan="5" style="text-align:left;color:var(--muted)">${esc(t('noOdds', { book: bookOf(E) }))}${ui.mkt !== 'all' ? esc(t('inMarket')) : ''}.</td></tr>`;
-  const th = (label, s) => `<th>${esc(label)}<small>${s ? esc(fmtTime(s.t)) + (s.src === 'hist' ? ' · ' + t('histShort') : '') : esc(t('noReading'))}</small></th>`;
+  const th = (label, s) => `<th>${esc(label)}<small>${s ? esc(fmtTime(s.t)) + (s.src === 'hist' ? ' · ' + t('histShort') : '') + (s.b && s.b !== primaryOf(E.sport) ? ' · ' + esc(BOOKS[s.b] || s.b) : '') : esc(t('noReading'))}</small></th>`;
   const sc = E.score && E.score.h != null ? E.score : null;
   const teams = soccer
     ? (sc ? `${esc(E.home)}<b class="sc">${esc(sc.h)}</b><span>–</span><b class="sc">${esc(sc.a)}</b>${esc(E.away)}` : `${esc(E.home)}<span>vs</span>${esc(E.away)}`)

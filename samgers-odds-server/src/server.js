@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SPORTS, BOOKS, TZ, DAY, trackedKeys, isActive } from './config.js';
-import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24 } from './db.js';
+import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24, restoreSnapshots } from './db.js';
 import { quota } from './odds.js';
 import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
 
@@ -173,6 +173,8 @@ process.on('unhandledRejection', e => console.error('[error]', e && e.message ? 
 app.use((err, req, res, next) => { console.error('[api]', err.message); res.status(500).json({ error: err.message }); });
 
 await migrate();
+await getConfig();
+try { const n = await restoreSnapshots(); if (n) console.log(`Recuperadas lecturas de ${n} partidos`); } catch (e) { console.error('[restore]', e.message); }
 app.listen(PORT, () => {
   console.log(`SAMGERS ODDS en el puerto ${PORT} (zona horaria ${TZ})`);
   startCollector();
