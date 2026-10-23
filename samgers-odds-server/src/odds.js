@@ -85,6 +85,8 @@ export function normMain(ev, primary, other) {
   const f = norm(ev, primary);
   if (!f) return null;
   const c = norm(ev, other);
+  // Moneyline de la otra casa, como referencia para calcular el edge.
+  if (c && c.h2h) f.ref = { book: other, h2h: c.h2h };
   if (c) for (const mk of FILL) {
     if (!f[mk] && c[mk]) {
       f[mk] = c[mk];
