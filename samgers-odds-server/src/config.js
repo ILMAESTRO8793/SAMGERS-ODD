@@ -4,14 +4,19 @@ export const API_KEY = process.env.ODDS_API_KEY || '';
 
 export const FEATURED = 'h2h,spreads,totals';
 export const EXTRA_SOC = 'btts,alternate_totals,team_totals';
-// Casa principal: Codere en fútbol, FanDuel en NFL, NCAAF y NBA.
-export const PRIMARY = k => (String(k).startsWith('soccer_') ? 'codere_it' : 'fanduel');
-export const OTHER = k => (PRIMARY(k) === 'fanduel' ? 'codere_it' : 'fanduel');
+// 5 casas principales por deporte, en orden de prioridad. Cada mercado se toma de la primera casa que lo tenga.
+export const PRIO = {
+  soc: ['codere_it', 'pinnacle', 'fanduel', 'draftkings', 'onexbet'],
+  us: ['fanduel', 'draftkings', 'betmgm', 'williamhill_us', 'pinnacle']
+};
+export const PRIORITY = k => (String(k).startsWith('soccer_') ? PRIO.soc : PRIO.us);
+export const PRIMARY = k => PRIORITY(k)[0];
 
 export const SPORTS = {
   nfl: [{ k: 'americanfootball_nfl', n: 'NFL' }],
   ncaaf: [{ k: 'americanfootball_ncaaf', n: 'NCAAF' }],
   nba: [{ k: 'basketball_nba', n: 'NBA' }],
+  nhl: [{ k: 'icehockey_nhl', n: 'NHL' }],
   soc: [
     { k: 'soccer_epl', n: 'Premier League' },
     { k: 'soccer_spain_la_liga', n: 'LaLiga' },
@@ -50,10 +55,10 @@ export const SPORTS = {
 export const ACTIVE = { keys: null };
 export const isActive = k => !ACTIVE.keys || ACTIVE.keys.has(k);
 
-export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere' };
+export const BOOKS = { codere_it: 'Codere', fanduel: 'FanDuel', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars', pinnacle: 'Pinnacle', onexbet: '1xBet' };
 
 export const DEFAULT_CONFIG = {
-  sports: { nfl: true, ncaaf: true, nba: true, soc: true },
+  sports: { nfl: true, ncaaf: true, nba: true, nhl: true, soc: true },
   leagues: null, // null = todas las ligas de fútbol de la lista
   books: ['fanduel', 'codere_it'],
   extras: true,
@@ -73,7 +78,7 @@ export const leagueName = k => {
 };
 export function trackedKeys(cfg, tab) {
   const out = [];
-  for (const t of ['nfl', 'ncaaf', 'nba']) if (cfg.sports[t] && (!tab || tab === t)) out.push(...SPORTS[t].map(l => l.k));
+  for (const t of ['nfl', 'ncaaf', 'nba', 'nhl']) if (cfg.sports[t] && (!tab || tab === t)) out.push(...SPORTS[t].map(l => l.k));
   if (cfg.sports.soc && (!tab || tab === 'soc')) out.push(...SPORTS.soc.filter(l => cfg.leagues.includes(l.k) && isActive(l.k)).map(l => l.k));
   return out;
 }

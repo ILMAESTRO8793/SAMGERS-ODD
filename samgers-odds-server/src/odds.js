@@ -68,8 +68,8 @@ export function withExtras(o, x) {
   for (const k in x) {
     if (k === 'tmain' || k === '_from') continue;
     if (k === 'totals') {
-      // Líneas de goles de Codere solo si FanDuel no tiene ninguna línea de goles.
-      if (xf.totals && o.totals && !(o._from && o._from.totals)) continue;
+      // Si la línea principal es de una casa, no se mezclan líneas alternativas de otra.
+      if (o.totals && ((o._from && o._from.totals) || null) !== (xf.totals || null)) continue;
       out.totals = { ...x.totals, ...(o.totals || {}) };
       if (xf.totals && !o.totals) out._from.totals = xf.totals;
     } else { out[k] = x[k]; if (xf[k]) out._from[k] = xf[k]; else delete out._from[k]; }
@@ -78,30 +78,46 @@ export function withExtras(o, x) {
   return out;
 }
 
-/* Casa principal primero (Codere en fútbol, FanDuel en lo demás). Si no trae handicap, goles, BTTS
-   o goles por equipo en ese partido, se toman de la otra casa y se marcan. */
-const FILL = ['spreads', 'totals', 'btts', 'team_totals'];
-export function normMain(ev, primary, other) {
-  const f = norm(ev, primary);
-  if (!f) return null;
-  const c = norm(ev, other);
-  // Moneyline de la otra casa, como referencia para calcular el edge.
-  if (c && c.h2h) f.ref = { book: other, h2h: c.h2h };
-  if (c) for (const mk of FILL) {
-    if (!f[mk] && c[mk]) {
-      f[mk] = c[mk];
-      if (mk === 'totals' && c.tmain != null) f.tmain = c.tmain;
-      (f._from = f._from || {})[mk] = other;
+/* Las 5 casas en orden de prioridad: cada mercado sale de la primera casa que lo tenga (y se marca de cuál vino).
+   Además guarda el "consenso": la probabilidad sin margen promedio de las demás casas, para calcular el edge. */
+const FILL = ['h2h', 'spreads', 'totals', 'btts', 'team_totals'];
+export function normMain(ev, prio) {
+  const by = {};
+  for (const b of prio) { const o = norm(ev, b); if (o) by[b] = o; }
+  const books = prio.filter(b => by[b]);
+  if (!books.length) return null;
+  const f = { _from: {} };
+  for (const mk of FILL) {
+    const b = books.find(x => by[x][mk]);
+    if (!b) continue;
+    f[mk] = by[b][mk];
+    if (mk === 'totals' && by[b].tmain != null) f.tmain = by[b].tmain;
+    if (b !== prio[0]) f._from[mk] = b;
+  }
+  if (!Object.keys(f._from).length) delete f._from;
+  if (!f.h2h && !f.spreads && !f.totals) return null;
+  const hb = books.find(x => by[x].h2h);
+  const others = books.filter(x => x !== hb && by[x].h2h);
+  if (f.h2h && others.length) {
+    const acc = {}; let n = 0;
+    for (const x of others) {
+      const h = by[x].h2h, ks = Object.keys(f.h2h);
+      if (!ks.every(k => h[k] && h[k].p > 1)) continue;
+      const inv = ks.map(k => 1 / h[k].p), sum = inv.reduce((a, c) => a + c, 0);
+      ks.forEach((k, i2) => { acc[k] = (acc[k] || 0) + inv[i2] / sum; });
+      n++;
     }
+    if (n) { for (const k in acc) acc[k] /= n; f.cons = { p: acc, n }; }
   }
   return f;
 }
-export function extrasMain(ev, primary, other) {
-  const f = norm(ev, primary) || {}, c = norm(ev, other) || {};
+export function extrasMain(ev, prio) {
   const out = {};
   for (const mk of ['btts', 'totals', 'team_totals']) {
-    if (f[mk]) out[mk] = f[mk];
-    else if (c[mk]) { out[mk] = c[mk]; (out._from = out._from || {})[mk] = other; }
+    for (const b of prio) {
+      const o = norm(ev, b);
+      if (o && o[mk]) { out[mk] = o[mk]; if (b !== prio[0]) (out._from = out._from || {})[mk] = b; break; }
+    }
   }
   return Object.keys(out).length ? out : null;
 }

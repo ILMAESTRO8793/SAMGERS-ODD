@@ -1,7 +1,8 @@
-import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, PRIMARY, OTHER, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, PRIORITY, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, normMain, extrasMain, allBooks, withExtras, normProps } from './odds.js';
-const normFD = (ev, k) => normMain(ev, PRIMARY(k), OTHER(k));
+const normFD = (ev, k) => normMain(ev, PRIORITY(k));
+const hasAny = (ev, k) => PRIORITY(k).some(b => norm(ev, b));
 
 export const state = { noFd: new Map(), lastActive: 0, missing: new Set(), lastRun: {}, lastError: null, lastBefore: 0, lastIntl: 0, lastProps: 0, lastWatch: 0, lastLive: 0, done: new Set(), queued: new Set(), capHit: false };
 export const viewers = new Map(); // id -> { tab }
@@ -39,18 +40,18 @@ async function oddsById(k, rows, books, kind) {
   const byId = new Map(data.map(e => [e.id, e]));
   const inList = new Set(byId.keys());
   for (const e of rows) {
-    if (norm(byId.get(e.id), PRIMARY(k))) continue;
+    if (hasAny(byId.get(e.id), k)) continue;
     // Solo FanDuel: si FanDuel no tiene ese partido, la consulta no cuesta créditos.
     if (state.noFd.get(e.id) > Date.now()) continue;
-    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams(PRIMARY(k)), kind + '-partido', { allow404: true });
-    if (one && norm(one, PRIMARY(k))) byId.set(e.id, one);
+    const one = await apiGet(`/sports/${k}/events/${e.id}/odds`, oddsParams(PRIORITY(k).join(',')), kind + '-partido', { allow404: true });
+    if (one && hasAny(one, k)) byId.set(e.id, one);
     else state.noFd.set(e.id, Date.now() + 3 * 3600e3); // no volver a preguntar por ese partido en 3 horas
   }
   return { byId, inList };
 }
 
 async function extrasFor(k, id, kind) {
-  return extrasMain(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams(bookList(), EXTRA_SOC), kind, { allow404: true }), PRIMARY(k), OTHER(k));
+  return extrasMain(await apiGet(`/sports/${k}/events/${id}/odds`, oddsParams(PRIORITY(k).join(','), EXTRA_SOC), kind, { allow404: true }), PRIORITY(k));
 }
 
 /* Líneas de jugadores NBA: puntos, rebotes y asistencias (principal y alternativas) */
@@ -71,7 +72,7 @@ export async function fetchProps(e, kind) {
   let p = null;
   for (const markets of PROP_GROUPS) {
     try {
-      const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams(bookList(), markets), kind, { allow404: true });
+      const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams('fanduel,draftkings,betmgm', markets), kind, { allow404: true });
       p = mergeProps(p, normProps(j));
     } catch (err) { if (err.fatal) throw err; }
   }
@@ -285,9 +286,9 @@ async function hist(e, ts, only) {
   const iso = new Date(ts).toISOString().replace(/\.\d{3}Z$/, 'Z');
   const markets = only || (FEATURED + (isSoc(cfg, e.sport) ? ',' + EXTRA_SOC : ''));
   const j = await apiGet(`/historical/sports/${e.sport}/events/${e.id}/odds`,
-    { regions: 'us', bookmakers: PRIMARY(e.sport), markets, oddsFormat: 'decimal', date: iso }, 'historico', { allow404: true });
+    { regions: 'us', bookmakers: PRIORITY(e.sport).join(','), markets, oddsFormat: 'decimal', date: iso }, 'historico', { allow404: true });
   if (!j) return null;
-  const o = norm(j.data, PRIMARY(e.sport));
+  const o = normMain(j.data, PRIORITY(e.sport));
   return o ? { t: Date.parse(j.timestamp), o, src: 'hist' } : null;
 }
 export async function findOpening(e) {
