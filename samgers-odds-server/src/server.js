@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SPORTS, BOOKS, PRIO, TZ, DAY, trackedKeys, isActive } from './config.js';
+import { SPORTS, BOOKS, PRIO, PROPS_BOOKS, TZ, DAY, trackedKeys, isActive } from './config.js';
 import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24, restoreSnapshots } from './db.js';
 import { quota } from './odds.js';
 import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
@@ -83,7 +83,7 @@ async function statusInfo() {
   };
 }
 
-app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, sports: { ...SPORTS, soc: SPORTS.soc.filter(l => isActive(l.k)) }, books: BOOKS, prio: PRIO, config: await getConfig() })));
+app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, sports: { ...SPORTS, soc: SPORTS.soc.filter(l => isActive(l.k)) }, books: BOOKS, prio: PRIO, propsBooks: PROPS_BOOKS, config: await getConfig() })));
 
 app.get('/api/events', wrap(async (req, res) => {
   const cfg = await getConfig();

@@ -488,19 +488,19 @@ Object.assign(I18N.en, {
 
 Object.assign(I18N.es, {
   tagline:'Cuotas de 5 casas: apertura, día antes y día del partido',
-  legend:'Cada mercado se toma de 5 casas en orden de prioridad (fútbol: Codere, Pinnacle, FanDuel, DraftKings, 1xBet; NFL, NCAAF, NBA y NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). Si la primera no lo tiene, se usa la siguiente y se marca de cuál casa vino. Apertura: la cuota del primer día en que se publica el partido. Día antes: la cuota del día anterior; se actualiza durante ese día y queda fija con la de las 11:50 pm. Día del partido: la cuota actual y en vivo. En el moneyline, el % es la probabilidad sin margen; Mov. muestra cuántos puntos subió o bajó desde la apertura. Edge: cuánto paga de más (+) o de menos (−) la cuota mostrada comparada con el consenso sin margen de las otras casas; positivo indica valor. En "Goles por equipo", sube o baja indica cuántos goles se esperan de cada equipo.',
+  legend:'Cada mercado se toma de 5 casas en orden de prioridad (fútbol: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA y NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). Si la primera no lo tiene, se usa la siguiente y se marca de cuál casa vino. Apertura: la cuota del primer día en que se publica el partido. Día antes: la cuota del día anterior; se actualiza durante ese día y queda fija con la de las 11:50 pm. Día del partido: la cuota actual y en vivo. En el moneyline, el % es la probabilidad sin margen; Mov. muestra cuántos puntos subió o bajó desde la apertura. Edge: cuánto paga de más (+) o de menos (−) la cuota mostrada comparada con el consenso sin margen de las otras casas; positivo indica valor. En "Goles por equipo", sube o baja indica cuántos goles se esperan de cada equipo.',
   notYet:'Ninguna de las 5 casas publica este partido todavía', pubBetween:'Se publicó entre <b>{a}</b> y <b>{b}</b>',
   pubSeen:'Ya estaba publicado cuando la app lo vio por primera vez ({t}).', noOdds:'Todavía no hay cuotas para este partido',
   fromOther:'de {book}', vsCons:'vs consenso de {n} casa(s)', booksLive:'Cuotas en vivo de las 5 casas', booksNow:'Cuotas actuales de las 5 casas', booksFinal:'Cuotas finales de las 5 casas'
 });
 Object.assign(I18N.en, {
   tagline:'Odds from 5 books: opening, day before and game day',
-  legend:'Each market is taken from 5 books in priority order (soccer: Codere, Pinnacle, FanDuel, DraftKings, 1xBet; NFL, NCAAF, NBA and NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). If the first does not have it, the next one is used and labeled. Opening: the odds from the first day the game is posted. Day before: the odds on the previous day; it updates during that day and locks with the 11:50 pm reading. Game day: current and live odds. In the moneyline, the % is the no-margin probability; Move shows how many points it rose or fell since the opening. Edge: how much more (+) or less (−) the shown price pays compared with the other books\' no-margin consensus; positive means value. In "Team goals", up or down shows how many goals each team is expected to score.',
+  legend:'Each market is taken from 5 books in priority order (soccer: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA and NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). If the first does not have it, the next one is used and labeled. Opening: the odds from the first day the game is posted. Day before: the odds on the previous day; it updates during that day and locks with the 11:50 pm reading. Game day: current and live odds. In the moneyline, the % is the no-margin probability; Move shows how many points it rose or fell since the opening. Edge: how much more (+) or less (−) the shown price pays compared with the other books\' no-margin consensus; positive means value. In "Team goals", up or down shows how many goals each team is expected to score.',
   notYet:'None of the 5 books has posted this game yet', pubBetween:'Posted between <b>{a}</b> and <b>{b}</b>',
   pubSeen:'It was already posted when the app first saw it ({t}).', noOdds:'No odds for this game yet',
   fromOther:'from {book}', vsCons:'vs consensus of {n} book(s)', booksLive:'Live odds from the 5 books', booksNow:'Current odds from the 5 books', booksFinal:'Final odds from the 5 books'
 });
-let PRIO = { soc: ['codere_it'], us: ['fanduel'] };
+let PRIO = { soc: ['fanduel'], us: ['fanduel'] }, PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'prizepicks'];
 const prioOf = k => (String(k).startsWith('soccer_') ? PRIO.soc : PRIO.us);
 const primaryOf = k => prioOf(k)[0];
 const bookOf = E => (BOOKS && BOOKS[primaryOf(E.sport)]) || primaryOf(E.sport);
@@ -549,7 +549,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 async function boot(){
   try {
     const me = await api('/api/me');
-    USER = me.user; TZ = me.tz; SPORTS = me.sports; BOOKS = me.books; CFG = me.config; if (me.prio) PRIO = me.prio;
+    USER = me.user; TZ = me.tz; SPORTS = me.sports; BOOKS = me.books; CFG = me.config; if (me.prio) PRIO = me.prio; if (me.propsBooks) PROPS_BOOKS = me.propsBooks;
     if (!SPORTS[ui.tab]) ui.tab = 'nfl';
     hideLogin(); render(); await load(); openStream();
   } catch (e) { if (!e.auth) toast(e.message, 7000); }
@@ -720,7 +720,7 @@ function propsBody(id){
     `<button class="link" data-act="prefresh" data-id="${esc(id)}">${esc(t('pRefresh'))}</button></div>`;
   const cur = P.cur && P.cur.by;
   if (!cur) return bar + `<p class="pempty">${esc(t('pNone'))}</p>`;
-  const books = Object.keys(BOOKS).filter(b => cur[b]);
+  const books = PROPS_BOOKS.filter(b => cur[b]);
   const players = new Set();
   books.forEach(b => Object.keys((cur[b] || {})[st] || {}).forEach(n => players.add(n)));
   const fd = (cur.fanduel || {})[st] || {};
@@ -787,7 +787,7 @@ function gameHTML(E){
     }
   }
   if (!body) body = `<tr><td colspan="5" style="text-align:left;color:var(--muted)">${esc(t('noOdds', { book: bookOf(E) }))}${ui.mkt !== 'all' ? esc(t('inMarket')) : ''}.</td></tr>`;
-  const th = (label, s) => `<th>${esc(label)}<small>${s ? esc(fmtTime(s.t)) + (s.src === 'hist' ? ' · ' + t('histShort') : '') + (s.b && s.b !== primaryOf(E.sport) ? ' · ' + esc(BOOKS[s.b] || s.b) : '') : esc(t('noReading'))}</small></th>`;
+  const th = (label, s) => `<th>${esc(label)}<small>${s ? esc(fmtTime(s.t)) + (s.src === 'hist' ? ' · ' + t('histShort') : '') + ((s.b || (s.o && s.o.bk)) && (s.b || s.o.bk) !== primaryOf(E.sport) ? ' · ' + esc(BOOKS[s.b || s.o.bk] || s.b || s.o.bk) : '') : esc(t('noReading'))}</small></th>`;
   const sc = E.score && E.score.h != null ? E.score : null;
   const teams = soccer
     ? (sc ? `${esc(E.home)}<b class="sc">${esc(sc.h)}</b><span>–</span><b class="sc">${esc(sc.a)}</b>${esc(E.away)}` : `${esc(E.home)}<span>vs</span>${esc(E.away)}`)

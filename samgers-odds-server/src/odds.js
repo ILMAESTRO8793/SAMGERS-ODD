@@ -95,6 +95,7 @@ export function normMain(ev, prio) {
     if (b !== prio[0]) f._from[mk] = b;
   }
   if (!Object.keys(f._from).length) delete f._from;
+  f.bk = books.find(x => by[x].h2h) || books[0]; // casa de la que salió el moneyline
   if (!f.h2h && !f.spreads && !f.totals) return null;
   const hb = books.find(x => by[x].h2h);
   const others = books.filter(x => x !== hb && by[x].h2h);

@@ -1,4 +1,4 @@
-import { FEATURED, EXTRA_SOC, DAY, BOOKS, ACTIVE, PRIORITY, trackedKeys, dayKey, hhmm } from './config.js';
+import { FEATURED, EXTRA_SOC, DAY, BOOKS, PROPS_BOOKS, ACTIVE, PRIORITY, trackedKeys, dayKey, hhmm } from './config.js';
 import { getConfig, upsertEvent, updateEvent, addSnapshot, eventsBySports, usedLast24, prune } from './db.js';
 import { apiGet, norm, normMain, extrasMain, allBooks, withExtras, normProps } from './odds.js';
 const normFD = (ev, k) => normMain(ev, PRIORITY(k));
@@ -28,7 +28,7 @@ export function run(name, fn) {
 
 const oddsParams = (books = 'fanduel', markets = FEATURED) =>
   ({ regions: 'us', bookmakers: books, markets, oddsFormat: 'decimal', dateFormat: 'iso' });
-const bookList = () => Object.keys(BOOKS).join(',');
+const bookList = () => Object.keys(BOOKS).filter(b => b !== 'prizepicks').join(',');
 const isSoc = (cfg, k) => k.startsWith('soccer_') && cfg.extras;
 const groupBy = (rows, f) => rows.reduce((m, r) => (m.get(f(r)) || m.set(f(r), []).get(f(r))).push(r) && m, new Map());
 
@@ -72,7 +72,7 @@ export async function fetchProps(e, kind) {
   let p = null;
   for (const markets of PROP_GROUPS) {
     try {
-      const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams('fanduel,draftkings,betmgm', markets), kind, { allow404: true });
+      const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams(PROPS_BOOKS.join(','), markets), kind, { allow404: true });
       p = mergeProps(p, normProps(j));
     } catch (err) { if (err.fatal) throw err; }
   }

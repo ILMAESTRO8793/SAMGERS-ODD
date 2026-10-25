@@ -6,7 +6,7 @@ export const FEATURED = 'h2h,spreads,totals';
 export const EXTRA_SOC = 'btts,alternate_totals,team_totals';
 // 5 casas principales por deporte, en orden de prioridad. Cada mercado se toma de la primera casa que lo tenga.
 export const PRIO = {
-  soc: ['codere_it', 'pinnacle', 'fanduel', 'draftkings', 'onexbet'],
+  soc: ['fanduel', 'codere_it', 'pinnacle', 'draftkings', 'onexbet'],
   us: ['fanduel', 'draftkings', 'betmgm', 'williamhill_us', 'pinnacle']
 };
 export const PRIORITY = k => (String(k).startsWith('soccer_') ? PRIO.soc : PRIO.us);
@@ -55,7 +55,9 @@ export const SPORTS = {
 export const ACTIVE = { keys: null };
 export const isActive = k => !ACTIVE.keys || ACTIVE.keys.has(k);
 
-export const BOOKS = { codere_it: 'Codere', fanduel: 'FanDuel', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars', pinnacle: 'Pinnacle', onexbet: '1xBet' };
+export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars', pinnacle: 'Pinnacle', onexbet: '1xBet', prizepicks: 'PrizePicks' };
+// Casas para las player props de la NBA (PrizePicks solo tiene props).
+export const PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'prizepicks'];
 
 export const DEFAULT_CONFIG = {
   sports: { nfl: true, ncaaf: true, nba: true, nhl: true, soc: true },
