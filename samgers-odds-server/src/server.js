@@ -87,8 +87,8 @@ app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, s
 
 app.get('/api/events', wrap(async (req, res) => {
   const cfg = await getConfig();
-  const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  const keys = trackedKeys(cfg, tab);
+  const tab = req.query.tab === 'flips' ? 'flips' : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  const keys = tab === 'flips' ? [...trackedKeys(cfg, 'nba'), ...trackedKeys(cfg, 'soc')] : trackedKeys(cfg, tab);
   const now = Date.now();
   const rows = keys.length ? await eventsBySports(keys, now - 14 * DAY, now + 30 * DAY) : [];
   res.json({ events: rows.map(shape), status: await statusInfo() });
@@ -154,7 +154,7 @@ function broadcast() { for (const res of streams.values()) res.write('event: upd
 setNotifier(broadcast);
 app.get('/api/stream', (req, res) => {
   const id = crypto.randomUUID();
-  const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  const tab = req.query.tab === 'flips' ? 'flips' : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
   res.write('retry: 5000\n\n');
   streams.set(id, res);

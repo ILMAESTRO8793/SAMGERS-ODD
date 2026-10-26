@@ -232,6 +232,7 @@ body{overflow-x:hidden}
       <button class="tab" role="tab" data-tab="nba">NBA</button>
       <button class="tab" role="tab" data-tab="nhl">NHL</button>
       <button class="tab" role="tab" data-tab="soc" data-i18n="tabSoc"></button>
+      <button class="tab" role="tab" data-tab="flips" data-i18n="tabFlips"></button>
     </nav>
   </div>
 </header>
@@ -244,7 +245,7 @@ body{overflow-x:hidden}
       <button data-m="all" data-i18n="mkAll"></button><button data-m="h2h">Moneyline</button><button data-m="spreads" data-i18n="mkSpreads"></button><button data-m="totals" data-i18n="mkTotals"></button><button data-m="btts" id="bttsChip">BTTS</button>
     </div>
     <div class="seg" id="viewSeg">
-      <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button><button data-v="flips" id="flipsBtn" data-i18n="viewFlips"></button>
+      <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button>
     </div>
     <div class="seg" id="fmtSeg">
       <button data-f="american" data-i18n="fmtAm"></button><button data-f="decimal">Decimal</button>
@@ -454,7 +455,8 @@ Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 
 Object.assign(I18N.es, {
-  viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Ninguna línea de estos partidos pasó de negativa a positiva ni de positiva a negativa entre la apertura y el día antes o el día del partido.', flipsIntro:'Líneas que abrieron negativas (−) y el día antes o el día del partido están positivas (+), o al revés. Incluye moneyline, handicap, total, goles por equipo y BTTS. Usa el filtro de mercado para ver uno solo.',
+  tabFlips:'+/− y viceversa', secNba:'NBA',
+  viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Por ahora ninguna cuota cambió de signo.', flipsIntro:'Solo cuotas que cambiaron de signo: abrieron negativas (−) y el día antes o el día del partido están positivas (+), o abrieron positivas y pasaron a negativas. Cambios dentro del mismo signo (por ejemplo −110 a −130) no aparecen aquí. Incluye moneyline, handicap, total, goles por equipo y BTTS de la NBA y del fútbol europeo.',
   mkPuck:'Handicap (puck line)', mkGoalsNhl:'Total de goles',
   ppts:'pts de prob.', edge:'Edge', margin:'margen de la casa {m}',
   tagline:'Líneas de FanDuel (NFL, NCAAF, NBA) y Codere (fútbol): apertura, día antes y día del partido',
@@ -472,7 +474,8 @@ Object.assign(I18N.es, {
   mkTeamGoals:'Goles por equipo (lo que espera la casa)', ttOver:'{team}: Más de', ttUnder:'{team}: Menos de', goalsUp:'sube', goalsDown:'baja'
 });
 Object.assign(I18N.en, {
-  viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No line in these games went from negative to positive or from positive to negative between the opening and the day before or game day.', flipsIntro:'Lines that opened negative (−) and are positive (+) on the day before or game day, or the other way around. Includes moneyline, spread, total, team goals and BTTS. Use the market filter to see just one.',
+  tabFlips:'+/− and vice versa', secNba:'NBA',
+  viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No odds have changed sign yet.', flipsIntro:'Only odds that changed sign: opened negative (−) and are positive (+) on the day before or game day, or opened positive and turned negative. Changes within the same sign (e.g. −110 to −130) do not appear here. Includes moneyline, spread, total, team goals and BTTS for the NBA and European soccer.',
   mkPuck:'Puck line', mkGoalsNhl:'Total goals',
   ppts:'prob. pts', edge:'Edge', margin:'book margin {m}',
   tagline:'FanDuel (NFL, NCAAF, NBA) and Codere (soccer) lines: opening, day before and game day',
@@ -492,14 +495,14 @@ Object.assign(I18N.en, {
 
 Object.assign(I18N.es, {
   tagline:'Cuotas de 5 casas: apertura, día antes y día del partido',
-  legend:'Cada mercado se toma de 5 casas en orden de prioridad (fútbol: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA y NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). Si la primera no lo tiene, se usa la siguiente y se marca de cuál casa vino. Apertura: la cuota del primer día en que se publica el partido. Día antes: la cuota del día anterior; se actualiza durante ese día y queda fija con la de las 11:50 pm. Día del partido: la cuota actual y en vivo. En el moneyline, el % es la probabilidad sin margen; Mov. muestra cuántos puntos subió o bajó desde la apertura. Edge: cuánto paga de más (+) o de menos (−) la cuota mostrada comparada con el consenso sin margen de las otras casas; positivo indica valor. En "Goles por equipo", sube o baja indica cuántos goles se esperan de cada equipo.',
+  legend:'Cada mercado se toma de 5 casas en orden de prioridad (fútbol: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA y NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). Si la primera no lo tiene, se usa la siguiente y se marca de cuál casa vino. Apertura: la cuota del primer día en que se publica el partido. Día antes: la cuota del día anterior; se actualiza durante ese día y queda fija con la de las 11:50 pm. Día del partido: la cuota actual y en vivo. En el moneyline, el % es la probabilidad sin margen; Mov. muestra cuántos puntos subió o bajó desde la apertura. En "Goles por equipo", sube o baja indica cuántos goles se esperan de cada equipo.',
   notYet:'Ninguna de las 5 casas publica este partido todavía', pubBetween:'Se publicó entre <b>{a}</b> y <b>{b}</b>',
   pubSeen:'Ya estaba publicado cuando la app lo vio por primera vez ({t}).', noOdds:'Todavía no hay cuotas para este partido',
   fromOther:'de {book}', vsCons:'vs consenso de {n} casa(s)', booksLive:'Cuotas en vivo de las 5 casas', booksNow:'Cuotas actuales de las 5 casas', booksFinal:'Cuotas finales de las 5 casas'
 });
 Object.assign(I18N.en, {
   tagline:'Odds from 5 books: opening, day before and game day',
-  legend:'Each market is taken from 5 books in priority order (soccer: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA and NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). If the first does not have it, the next one is used and labeled. Opening: the odds from the first day the game is posted. Day before: the odds on the previous day; it updates during that day and locks with the 11:50 pm reading. Game day: current and live odds. In the moneyline, the % is the no-margin probability; Move shows how many points it rose or fell since the opening. Edge: how much more (+) or less (−) the shown price pays compared with the other books\' no-margin consensus; positive means value. In "Team goals", up or down shows how many goals each team is expected to score.',
+  legend:'Each market is taken from 5 books in priority order (soccer: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA and NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). If the first does not have it, the next one is used and labeled. Opening: the odds from the first day the game is posted. Day before: the odds on the previous day; it updates during that day and locks with the 11:50 pm reading. Game day: current and live odds. In the moneyline, the % is the no-margin probability; Move shows how many points it rose or fell since the opening. In "Team goals", up or down shows how many goals each team is expected to score.',
   notYet:'None of the 5 books has posted this game yet', pubBetween:'Posted between <b>{a}</b> and <b>{b}</b>',
   pubSeen:'It was already posted when the app first saw it ({t}).', noOdds:'No odds for this game yet',
   fromOther:'from {book}', vsCons:'vs consensus of {n} book(s)', booksLive:'Live odds from the 5 books', booksNow:'Current odds from the 5 books', booksFinal:'Final odds from the 5 books'
@@ -554,7 +557,7 @@ async function boot(){
   try {
     const me = await api('/api/me');
     USER = me.user; TZ = me.tz; SPORTS = me.sports; BOOKS = me.books; CFG = me.config; if (me.prio) PRIO = me.prio; if (me.propsBooks) PROPS_BOOKS = me.propsBooks;
-    if (!SPORTS[ui.tab]) ui.tab = 'nfl';
+    if (!SPORTS[ui.tab] && ui.tab !== 'flips') ui.tab = 'nfl';
     hideLogin(); render(); await load(); openStream();
   } catch (e) { if (!e.auth) toast(e.message, 7000); }
 }
@@ -619,14 +622,6 @@ function h2hExtra(a, b, name){
   if (a && a !== b && fa && fb && fa[name] != null && fb[name] != null) {
     const d = (fb[name] - fa[name]) * 100;
     if (Math.abs(d) >= 0.1) out += `<div class="prob ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲ +' : '▼ '}${d.toFixed(1)} ${esc(t('ppts'))}</div>`;
-  }
-  const y = val(b, 'h2h', name), cs = b.o && b.o.cons, r = b.o && b.o.ref;
-  let ref = null, vs = '';
-  if (cs && cs.p && cs.p[name] != null) { ref = cs.p[name]; vs = t('vsCons', { n: cs.n }); }
-  else if (r) { const rf = fairOf(r.h2h); if (rf && rf[name] != null) { ref = rf[name]; vs = 'vs ' + (BOOKS[r.book] || r.book); } }
-  if (ref != null && y) {
-    const edge = ref * y.p - 1;
-    out += `<div class="edge ${edge > 0 ? 'pos' : 'neg'}">${esc(t('edge'))} ${edge > 0 ? '+' : ''}${(edge * 100).toFixed(1)}% <small>${esc(vs)}</small></div>`;
   }
   return out;
 }
@@ -850,15 +845,25 @@ function flipCell(v, mk, flipped){
   const pt = mk === 'spreads' ? point(v.pt) : (mk === 'team_totals' ? v.pt : '');
   return `<td class="${flipped ? (v.p >= 2 ? 'fpos' : 'fneg') : ''}">${pt !== '' && pt != null ? `<span class="pt">${esc(pt)}</span>` : ''}<span class="odd">${esc(price(v.p))}</span></td>`;
 }
-function flipsHTML(evs, active){
+function flipsHTML(all, active){
+  let html = `<p class="hint" style="margin:6px 0 14px">${esc(t('flipsIntro'))}</p>`, total = 0;
+  for (const [title, pick] of [[t('secNba'), E => E.sport === 'basketball_nba'], [t('tabSoc'), E => String(E.sport).startsWith('soccer_')]]) {
+    const evs = all.filter(pick);
+    const r = flipsSection(evs, active);
+    total += r.n;
+    html += `<h2 class="day">${esc(title)}</h2>` + (r.n ? r.html : `<p class="hint">${esc(t('flipsNone'))}</p>`);
+  }
+  return html;
+}
+function flipsSection(evs, active){
   const list = evs.filter(active).sort((a, b) => a.c - b.c).concat(evs.filter(E => !active(E)).sort((a, b) => b.c - a.c));
-  let html = `<p class="hint" style="margin:6px 0 14px">${esc(t('flipsIntro'))}</p>`, n = 0;
+  let html = '', n = 0;
   for (const E of list) {
     const rows = flipRows(E); if (!rows.length) continue;
     n += rows.length;
     const soc = socLike(tabOf(E.sport));
     const teams = soc ? `${esc(E.home)}<span>vs</span>${esc(E.away)}` : `${esc(E.away)}<span>@</span>${esc(E.home)}`;
-    html += `<article class="game"><div class="ghead"><div class="teams">${teams}</div><div class="kick">${esc(fmtTime(E.c))}</div>${soc ? `<span class="league">${esc(leagueName(E.sport))}</span>` : ''}</div>
+    html += `<article class="game"><div class="ghead"><div class="teams">${teams}</div><div class="kick">${esc(fmtTime(E.c))}</div><span class="league">${esc(leagueName(E.sport))}</span></div>
       <div class="scroll"><table><thead><tr><th>${esc(t('market'))}</th><th>${esc(t('colOpen'))}</th><th>${esc(t('colBefore'))}</th><th>${esc(t('colGame'))}</th><th>${esc(t('flipCol'))}</th></tr></thead><tbody>` +
       rows.map(r => {
         const last = r.fg ? r.g : r.b, toPos = last.p >= 2;
@@ -866,8 +871,7 @@ function flipsHTML(evs, active){
           `<td class="chg ${toPos ? 'up' : 'down'}">${esc(sgn(r.x.p))} → ${esc(sgn(last.p))}<br><small>${esc(t(r.fg ? 'flipGame' : 'flipBefore'))}</small></td></tr>`;
       }).join('') + `</tbody></table></div></article>`;
   }
-  if (!n) return html + `<div class="notice"><h2>${esc(t('flipsNoneT'))}</h2><p>${esc(t('flipsNone'))}</p></div>`;
-  return html;
+  return { html, n };
 }
 function render(){
   applyStatic();
@@ -876,9 +880,10 @@ function render(){
   document.getElementById('bttsChip').hidden = !socLike(ui.tab);
   if (ui.mkt === 'btts' && !socLike(ui.tab)) ui.mkt = 'all';
   document.querySelectorAll('#mktSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ui.mkt));
-  const flipsOk = ui.tab === 'nba' || ui.tab === 'soc';
-  document.getElementById('flipsBtn').hidden = !flipsOk;
-  if (ui.view === 'flips' && !flipsOk) ui.view = 'up';
+  const isFlips = ui.tab === 'flips';
+  if (ui.view === 'flips') ui.view = 'up';
+  document.getElementById('viewSeg').style.display = isFlips ? 'none' : '';
+  document.getElementById('btnRefresh').hidden = isFlips;
   document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.view));
   document.querySelectorAll('#fmtSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === S.fmt));
   if (!CFG) return;
@@ -902,10 +907,10 @@ function render(){
     (ST && ST.capHit ? `<span class="warnline">${esc(t('capHitMsg'))}</span>` : '');
 
   const list = document.getElementById('list');
+  if (isFlips) { list.innerHTML = flipsHTML(EV, E => E.c > now || (!E.ended && now - E.c < 5 * 3600e3)); return; }
   if (!CFG.sports[ui.tab]) { list.innerHTML = `<div class="notice"><h2>${esc(t('sportOff'))}</h2><p>${esc(t('sportOffP'))}</p></div>`; return; }
   let evs = EV.filter(E => !socLike(ui.tab) || ui.league === 'all' || E.sport === ui.league);
   const active = E => E.c > now || (!E.ended && now - E.c < 5 * 3600e3);
-  if (ui.view === 'flips') { list.innerHTML = flipsHTML(evs, active); return; }
   evs = ui.view === 'up' ? evs.filter(active).sort((a, b) => a.c - b.c) : evs.filter(E => !active(E)).sort((a, b) => b.c - a.c);
   if (!evs.length) {
     list.innerHTML = `<div class="notice"><h2>${esc(t(ui.view === 'up' ? 'noGames' : 'noPast'))}</h2><p>${esc(t(ui.view === 'up' ? 'noGamesP' : 'noPastP'))}</p></div>`;
