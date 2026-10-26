@@ -137,6 +137,8 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .credtable td,.credtable th{padding:5px 8px}
 .num{width:120px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
 .warnline{color:var(--down);font-weight:600}
+td.fpos{background:rgba(23,114,69,.12)} td.fpos .odd{color:var(--up)}
+td.fneg{background:rgba(179,38,30,.10)} td.fneg .odd{color:var(--down)}
 .prob{font-size:.72rem;color:var(--muted);font-weight:600;line-height:1.3}
 .prob.up{color:var(--up)} .prob.down{color:var(--down)}
 .edge{font-size:.72rem;font-weight:700;line-height:1.3}
@@ -242,7 +244,7 @@ body{overflow-x:hidden}
       <button data-m="all" data-i18n="mkAll"></button><button data-m="h2h">Moneyline</button><button data-m="spreads" data-i18n="mkSpreads"></button><button data-m="totals" data-i18n="mkTotals"></button><button data-m="btts" id="bttsChip">BTTS</button>
     </div>
     <div class="seg" id="viewSeg">
-      <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button>
+      <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button><button data-v="flips" id="flipsBtn" data-i18n="viewFlips"></button>
     </div>
     <div class="seg" id="fmtSeg">
       <button data-f="american" data-i18n="fmtAm"></button><button data-f="decimal">Decimal</button>
@@ -452,6 +454,7 @@ Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 
 Object.assign(I18N.es, {
+  viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Ninguna línea de estos partidos pasó de negativa a positiva ni de positiva a negativa entre la apertura y el día antes o el día del partido.', flipsIntro:'Líneas que abrieron negativas (−) y el día antes o el día del partido están positivas (+), o al revés. Incluye moneyline, handicap, total, goles por equipo y BTTS. Usa el filtro de mercado para ver uno solo.',
   mkPuck:'Handicap (puck line)', mkGoalsNhl:'Total de goles',
   ppts:'pts de prob.', edge:'Edge', margin:'margen de la casa {m}',
   tagline:'Líneas de FanDuel (NFL, NCAAF, NBA) y Codere (fútbol): apertura, día antes y día del partido',
@@ -469,6 +472,7 @@ Object.assign(I18N.es, {
   mkTeamGoals:'Goles por equipo (lo que espera la casa)', ttOver:'{team}: Más de', ttUnder:'{team}: Menos de', goalsUp:'sube', goalsDown:'baja'
 });
 Object.assign(I18N.en, {
+  viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No line in these games went from negative to positive or from positive to negative between the opening and the day before or game day.', flipsIntro:'Lines that opened negative (−) and are positive (+) on the day before or game day, or the other way around. Includes moneyline, spread, total, team goals and BTTS. Use the market filter to see just one.',
   mkPuck:'Puck line', mkGoalsNhl:'Total goals',
   ppts:'prob. pts', edge:'Edge', margin:'book margin {m}',
   tagline:'FanDuel (NFL, NCAAF, NBA) and Codere (soccer) lines: opening, day before and game day',
@@ -500,7 +504,7 @@ Object.assign(I18N.en, {
   pubSeen:'It was already posted when the app first saw it ({t}).', noOdds:'No odds for this game yet',
   fromOther:'from {book}', vsCons:'vs consensus of {n} book(s)', booksLive:'Live odds from the 5 books', booksNow:'Current odds from the 5 books', booksFinal:'Final odds from the 5 books'
 });
-let PRIO = { soc: ['fanduel'], us: ['fanduel'] }, PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'prizepicks'];
+let PRIO = { soc: ['fanduel'], us: ['fanduel'] }, PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'codere_it'];
 const prioOf = k => (String(k).startsWith('soccer_') ? PRIO.soc : PRIO.us);
 const primaryOf = k => prioOf(k)[0];
 const bookOf = E => (BOOKS && BOOKS[primaryOf(E.sport)]) || primaryOf(E.sport);
@@ -813,6 +817,58 @@ function gameHTML(E){
   </article>`;
 }
 
+
+/* ---------- Cambios de signo: líneas que pasaron de − a + (o de + a −) el día antes o el día del partido ---------- */
+const sgn = d => (d >= 2 ? '+' : '−');
+function srcOf(s, mk){ if (!s || !s.o) return null; return (s.o._from && s.o._from[mk]) || (mk === 'h2h' ? s.o.bk : null) || 'main'; }
+function flipRows(E){
+  const open = E.snaps.open, before = E.snaps.before, game = E.live;
+  if (!open || !open.o || (!before && !game)) return [];
+  const soc = socLike(tabOf(E.sport));
+  const order = soc ? [E.home, 'Draw', E.away] : [E.away, E.home];
+  const all = ['h2h', 'spreads', 'totals', 'team_totals', 'btts'];
+  const mks = ui.mkt === 'all' ? all : ui.mkt === 'totals' ? ['totals', 'team_totals'] : [ui.mkt];
+  const rows = [];
+  for (const mk of mks) {
+    if (!open.o[mk]) continue;
+    let keys;
+    if (mk === 'totals') keys = open.o.tmain != null ? [['Over@main', t('over') + ' ' + open.o.tmain], ['Under@main', t('under') + ' ' + open.o.tmain]] : [];
+    else if (mk === 'team_totals') keys = Object.keys(open.o.team_totals).map(k => { const [tm, sd] = k.split('|'); return [k, t(sd === 'Over' ? 'ttOver' : 'ttUnder', { team: tm })]; });
+    else keys = order.filter(n => open.o[mk][n]).concat(Object.keys(open.o[mk]).filter(n => !order.includes(n))).map(n => [n, outLabel(n)]);
+    for (const [k, label] of keys) {
+      const x = val(open, mk, k); if (!x) continue;
+      const same = s => s && srcOf(s, mk) === srcOf(open, mk);
+      const b = same(before) ? val(before, mk, k) : null, g = same(game) ? val(game, mk, k) : null;
+      const fb = b && sgn(b.p) !== sgn(x.p), fg = g && sgn(g.p) !== sgn(x.p);
+      if (fb || fg) rows.push({ mk, label, x, b, g, fb, fg });
+    }
+  }
+  return rows;
+}
+function flipCell(v, mk, flipped){
+  if (!v) return '<td><span class="empty">—</span></td>';
+  const pt = mk === 'spreads' ? point(v.pt) : (mk === 'team_totals' ? v.pt : '');
+  return `<td class="${flipped ? (v.p >= 2 ? 'fpos' : 'fneg') : ''}">${pt !== '' && pt != null ? `<span class="pt">${esc(pt)}</span>` : ''}<span class="odd">${esc(price(v.p))}</span></td>`;
+}
+function flipsHTML(evs, active){
+  const list = evs.filter(active).sort((a, b) => a.c - b.c).concat(evs.filter(E => !active(E)).sort((a, b) => b.c - a.c));
+  let html = `<p class="hint" style="margin:6px 0 14px">${esc(t('flipsIntro'))}</p>`, n = 0;
+  for (const E of list) {
+    const rows = flipRows(E); if (!rows.length) continue;
+    n += rows.length;
+    const soc = socLike(tabOf(E.sport));
+    const teams = soc ? `${esc(E.home)}<span>vs</span>${esc(E.away)}` : `${esc(E.away)}<span>@</span>${esc(E.home)}`;
+    html += `<article class="game"><div class="ghead"><div class="teams">${teams}</div><div class="kick">${esc(fmtTime(E.c))}</div>${soc ? `<span class="league">${esc(leagueName(E.sport))}</span>` : ''}</div>
+      <div class="scroll"><table><thead><tr><th>${esc(t('market'))}</th><th>${esc(t('colOpen'))}</th><th>${esc(t('colBefore'))}</th><th>${esc(t('colGame'))}</th><th>${esc(t('flipCol'))}</th></tr></thead><tbody>` +
+      rows.map(r => {
+        const last = r.fg ? r.g : r.b, toPos = last.p >= 2;
+        return `<tr><td class="name"><b>${esc(mkLabel(E, r.mk))}</b><br>${esc(r.label)}</td>${flipCell(r.x, r.mk, false)}${flipCell(r.b, r.mk, r.fb)}${flipCell(r.g, r.mk, r.fg)}` +
+          `<td class="chg ${toPos ? 'up' : 'down'}">${esc(sgn(r.x.p))} → ${esc(sgn(last.p))}<br><small>${esc(t(r.fg ? 'flipGame' : 'flipBefore'))}</small></td></tr>`;
+      }).join('') + `</tbody></table></div></article>`;
+  }
+  if (!n) return html + `<div class="notice"><h2>${esc(t('flipsNoneT'))}</h2><p>${esc(t('flipsNone'))}</p></div>`;
+  return html;
+}
 function render(){
   applyStatic();
   if (!busy) document.getElementById('btnRefresh').textContent = t('refresh');
@@ -820,6 +876,9 @@ function render(){
   document.getElementById('bttsChip').hidden = !socLike(ui.tab);
   if (ui.mkt === 'btts' && !socLike(ui.tab)) ui.mkt = 'all';
   document.querySelectorAll('#mktSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ui.mkt));
+  const flipsOk = ui.tab === 'nba' || ui.tab === 'soc';
+  document.getElementById('flipsBtn').hidden = !flipsOk;
+  if (ui.view === 'flips' && !flipsOk) ui.view = 'up';
   document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.view));
   document.querySelectorAll('#fmtSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === S.fmt));
   if (!CFG) return;
@@ -846,6 +905,7 @@ function render(){
   if (!CFG.sports[ui.tab]) { list.innerHTML = `<div class="notice"><h2>${esc(t('sportOff'))}</h2><p>${esc(t('sportOffP'))}</p></div>`; return; }
   let evs = EV.filter(E => !socLike(ui.tab) || ui.league === 'all' || E.sport === ui.league);
   const active = E => E.c > now || (!E.ended && now - E.c < 5 * 3600e3);
+  if (ui.view === 'flips') { list.innerHTML = flipsHTML(evs, active); return; }
   evs = ui.view === 'up' ? evs.filter(active).sort((a, b) => a.c - b.c) : evs.filter(E => !active(E)).sort((a, b) => b.c - a.c);
   if (!evs.length) {
     list.innerHTML = `<div class="notice"><h2>${esc(t(ui.view === 'up' ? 'noGames' : 'noPast'))}</h2><p>${esc(t(ui.view === 'up' ? 'noGamesP' : 'noPastP'))}</p></div>`;

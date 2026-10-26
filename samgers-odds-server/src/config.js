@@ -55,9 +55,9 @@ export const SPORTS = {
 export const ACTIVE = { keys: null };
 export const isActive = k => !ACTIVE.keys || ACTIVE.keys.has(k);
 
-export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars', pinnacle: 'Pinnacle', onexbet: '1xBet', prizepicks: 'PrizePicks' };
-// Casas para las player props de la NBA (PrizePicks solo tiene props).
-export const PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'prizepicks'];
+export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere', draftkings: 'DraftKings', betmgm: 'BetMGM', williamhill_us: 'Caesars', pinnacle: 'Pinnacle', onexbet: '1xBet' };
+// Casas para las player props de la NBA.
+export const PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'codere_it'];
 
 export const DEFAULT_CONFIG = {
   sports: { nfl: true, ncaaf: true, nba: true, nhl: true, soc: true },

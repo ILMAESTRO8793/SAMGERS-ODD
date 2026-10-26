@@ -28,7 +28,7 @@ export function run(name, fn) {
 
 const oddsParams = (books = 'fanduel', markets = FEATURED) =>
   ({ regions: 'us', bookmakers: books, markets, oddsFormat: 'decimal', dateFormat: 'iso' });
-const bookList = () => Object.keys(BOOKS).filter(b => b !== 'prizepicks').join(',');
+const bookList = () => Object.keys(BOOKS).join(',');
 const isSoc = (cfg, k) => k.startsWith('soccer_') && cfg.extras;
 const groupBy = (rows, f) => rows.reduce((m, r) => (m.get(f(r)) || m.set(f(r), []).get(f(r))).push(r) && m, new Map());
 
