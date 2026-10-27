@@ -137,6 +137,22 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .credtable td,.credtable th{padding:5px 8px}
 .num{width:120px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
 .warnline{color:var(--down);font-weight:600}
+.pred{border-top:1px solid var(--line);padding:0 0 4px}
+.pred summary,.predbar{padding:10px 14px;font-size:.92rem;color:var(--brand);cursor:pointer}
+.predbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;cursor:default}
+.predbody{padding:0 14px 10px}
+.pbars{display:grid;gap:6px;margin:4px 0 10px}
+.pbarrow{display:grid;grid-template-columns:minmax(80px,160px) 1fr 44px auto;gap:8px;align-items:center;font-size:.85rem}
+.pbn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pbtrack{height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
+.pbfill{display:block;height:100%;background:var(--gold)}
+.pbv{font-weight:700;text-align:right}
+.pbm{color:var(--muted);font-size:.75rem;white-space:nowrap}
+.psum{margin:6px 0;font-weight:500}
+.pfac{margin:6px 0 8px;padding-left:18px;font-size:.88rem}
+.pfac li{margin:4px 0}
+.pval{font-size:.88rem;margin:6px 0}
+.pred a{color:var(--brand)}
 td.fpos{background:rgba(23,114,69,.12)} td.fpos .odd{color:var(--up)}
 td.fneg{background:rgba(179,38,30,.10)} td.fneg .odd{color:var(--down)}
 .prob{font-size:.72rem;color:var(--muted);font-weight:600;line-height:1.3}
@@ -443,19 +459,24 @@ Object.assign(I18N.en, {
 });
 
 Object.assign(I18N.es, { fromCodere:'Codere (FanDuel no lo ofrece)', missingFd:'Actualizado. FanDuel no está dando cuotas en este momento para {n} partido(s) de hoy; se intentará de nuevo en cada actualización.', 'k_apertura-partido':'Aperturas (por partido)', 'k_dia-antes-partido':'Día antes (por partido)', 'k_cierre-partido':'Cierre (por partido)', 'k_en-vivo-partido':'En vivo (por partido)', 'k_actualizar-partido':'Actualizar ahora (por partido)', cancel: 'Cancelar', vsNow:'vs. {t}', statusTitle:'Estado del servidor (última vez que corrió cada tarea)', statusErr:'Último error ({t}, {j}): {m}', statusOk:'Sin errores recientes.', 'k_dia-antes-final':'Día antes (11:50 pm)', 'k_dia-antes-update':'Día antes (6 am, 12 pm, 6 pm)', 'k_limpieza':'Limpieza', 'k_props':'Jugadores NBA', 'k_actualizar':'Actualizar ahora',
-  propsTitle:'Player props: puntos, rebotes, asistencias y más', pPoints:'Puntos', pRebounds:'Rebotes', pAssists:'Asistencias', pThrees:'Triples', pPRA:'PRA', pPR:'P+R', pPA:'P+A', pRA:'R+A', pSteals:'Robos', pBlocks:'Tapones', pTurnovers:'Pérdidas',
+  propsTitle:'Player props: puntos, rebotes, asistencias y más', pPoints:'Puntos', pRebounds:'Rebotes', pAssists:'Asistencias', pThrees:'Triples', pPRA:'P+R+A', pPR:'P+R', pPA:'P+A', pRA:'R+A', pSteals:'Robos', pBlocks:'Tapones', pTurnovers:'Pérdidas',
   pAlt:'Alternativas', pMain:'Línea principal', pPlayer:'Jugador', pOpened:'abrió {x}', pLoading:'Cargando…',
   pNone:'Todavía no hay líneas para esta estadística en este partido. FanDuel suele publicar las props el día del partido; el servidor las busca solo cada 2 horas.',
   pRefresh:'Actualizar jugadores', pUpdated:'Líneas de jugadores actualizadas: {t}', pOver:'Más', pUnder:'Menos', pNoBook:'Sin líneas de {b} en este partido.',
   'k_props-apertura':'Jugadores (apertura)', 'k_props-en-vivo':'Jugadores (día del partido)', 'k_props-manual':'Jugadores (manual)', 'k_deportes':'Lista de competiciones', 'k_internacional':'Internacional' });
 Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd:'Updated. FanDuel is not offering odds right now for {n} of today\'s game(s); it will retry on every update.', 'k_apertura-partido':'Openings (per game)', 'k_dia-antes-partido':'Day before (per game)', 'k_cierre-partido':'Closing (per game)', 'k_en-vivo-partido':'Live (per game)', 'k_actualizar-partido':'Update now (per game)', cancel: 'Cancel', vsNow:'vs. {t}', statusTitle:'Server status (last time each task ran)', statusErr:'Last error ({t}, {j}): {m}', statusOk:'No recent errors.', 'k_dia-antes-final':'Day before (11:50 pm)', 'k_dia-antes-update':'Day before (6 am, 12 pm, 6 pm)', 'k_limpieza':'Cleanup', 'k_props':'NBA players', 'k_actualizar':'Update now',
-  propsTitle:'Player props: points, rebounds, assists and more', pPoints:'Points', pRebounds:'Rebounds', pAssists:'Assists', pThrees:'Threes', pPRA:'PRA', pPR:'P+R', pPA:'P+A', pRA:'R+A', pSteals:'Steals', pBlocks:'Blocks', pTurnovers:'Turnovers',
+  propsTitle:'Player props: points, rebounds, assists and more', pPoints:'Points', pRebounds:'Rebounds', pAssists:'Assists', pThrees:'Threes', pPRA:'P+R+A', pPR:'P+R', pPA:'P+A', pRA:'R+A', pSteals:'Steals', pBlocks:'Blocks', pTurnovers:'Turnovers',
   pAlt:'Alternates', pMain:'Main line', pPlayer:'Player', pOpened:'opened {x}', pLoading:'Loading…',
   pNone:'No lines for this stat in this game yet. FanDuel usually posts props on game day; the server checks on its own every 2 hours.',
   pRefresh:'Update players', pUpdated:'Player lines updated: {t}', pOver:'Over', pUnder:'Under', pNoBook:'No {b} lines for this game.',
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 
 Object.assign(I18N.es, {
+  predTitle:'Pronóstico IA', predMake:'Generar pronóstico', predRedo:'Actualizar pronóstico', predBusy:'Analizando…',
+  predHint:'La IA busca lesiones, estado físico, forma reciente, lugar del partido y enfrentamientos, y los compara con las cuotas. Tarda entre 30 segundos y 2 minutos.',
+  predConf:'confianza', predMkt:'casas {p}', predValue:'Valor', predSources:'Fuentes', predWhen:'Generado {t}', predDisclaimer:'es una estimación, no una garantía.',
+  predWait:'Analizando el partido con IA… puede tardar hasta 2 minutos.', predDone:'Pronóstico listo',
+  noAiKey:'Falta la clave de la IA (ANTHROPIC_API_KEY) en las variables de Railway.', aiCap:'Se alcanzó el máximo de pronósticos de hoy.', onlyNbaSoccer:'Los pronósticos son solo para NBA y fútbol.',
   tabFlips:'+/− y viceversa', secNba:'NBA',
   viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Por ahora, en los partidos próximos y en vivo ninguna cuota cambió de signo. Toca "Actualizar ahora" para traer las cuotas más recientes.', flipsIntro:'Solo partidos próximos y en vivo, y solo cuotas que cambiaron de signo: abrieron negativas (−) y el día antes o el día del partido están positivas (+), o abrieron positivas y pasaron a negativas. Cambios dentro del mismo signo (por ejemplo −110 a −130) no aparecen aquí. Incluye moneyline, handicap, total, goles por equipo y BTTS.',
   mkPuck:'Handicap (puck line)', mkGoalsNhl:'Total de goles',
@@ -475,6 +496,11 @@ Object.assign(I18N.es, {
   mkTeamGoals:'Goles por equipo (lo que espera la casa)', ttOver:'{team}: Más de', ttUnder:'{team}: Menos de', goalsUp:'sube', goalsDown:'baja'
 });
 Object.assign(I18N.en, {
+  predTitle:'AI prediction', predMake:'Generate prediction', predRedo:'Update prediction', predBusy:'Analyzing…',
+  predHint:'The AI looks up injuries, fitness, recent form, venue and head-to-head, and compares them with the odds. It takes 30 seconds to 2 minutes.',
+  predConf:'confidence', predMkt:'books {p}', predValue:'Value', predSources:'Sources', predWhen:'Generated {t}', predDisclaimer:'this is an estimate, not a guarantee.',
+  predWait:'Analyzing the game with AI… it can take up to 2 minutes.', predDone:'Prediction ready',
+  noAiKey:'The AI key (ANTHROPIC_API_KEY) is missing in the Railway variables.', aiCap:'Today\'s prediction limit was reached.', onlyNbaSoccer:'Predictions are only for the NBA and soccer.',
   tabFlips:'+/− and vice versa', secNba:'NBA',
   viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No odds have changed sign yet in upcoming or live games. Tap "Update now" to get the latest odds.', flipsIntro:'Only upcoming and live games, and only odds that changed sign: opened negative (−) and are positive (+) on the day before or game day, or opened positive and turned negative. Changes within the same sign (e.g. −110 to −130) do not appear here. Includes moneyline, spread, total, team goals and BTTS.',
   mkPuck:'Puck line', mkGoalsNhl:'Total goals',
@@ -703,8 +729,35 @@ function booksHTML(E){
     <div class="scroll"><table><thead><tr><th>${esc(t('market'))}</th>${keys.map(k => `<th>${esc(BOOKS[k])}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
   </details>`;
 }
+const PRED_OPEN = new Set(), PRED_BUSY = new Set();
+function predHTML(E){
+  const P = E.pred, busy = PRED_BUSY.has(E.id);
+  if (!P) return `<div class="pred"><div class="predbar"><b>${esc(t('predTitle'))}</b>
+    <button class="link" data-act="predict" data-id="${esc(E.id)}" ${busy ? 'disabled' : ''}>${esc(t(busy ? 'predBusy' : 'predMake'))}</button></div>
+    <p class="pmeta">${esc(t('predHint'))}</p></div>`;
+  const soc = String(E.sport).startsWith('soccer_');
+  const mk = fair(E.last) || {};
+  const rows = [[E.home, P.prob && P.prob.home, mk[E.home]], ...(soc ? [[t('draw'), P.prob && P.prob.draw, mk.Draw]] : []), [E.away, P.prob && P.prob.away, mk[E.away]]];
+  const pickProb = rows.find(r => r[0] === P.pick || (P.pick === 'Empate' && r[0] === t('draw')) || (P.pick === 'Draw' && r[0] === t('draw')));
+  const bars = rows.map(([n, a, m]) => `<div class="pbarrow"><span class="pbn">${esc(n)}</span>
+      <span class="pbtrack"><span class="pbfill" style="width:${Math.round((a || 0) * 100)}%"></span></span>
+      <span class="pbv">${a != null ? (a * 100).toFixed(0) + '%' : '—'}</span><span class="pbm">${m != null ? esc(t('predMkt', { p: (m * 100).toFixed(0) + '%' })) : ''}</span></div>`).join('');
+  const factors = (P.factors || []).map(f => `<li><b>${esc(f.title)}:</b> ${esc(f.text)}</li>`).join('');
+  const src = (P.sources || []).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>`).join(' · ');
+  return `<details class="pred" data-pred="${esc(E.id)}" ${PRED_OPEN.has(E.id) ? 'open' : ''}>
+    <summary>${esc(t('predTitle'))}: <b>${esc(P.pick)}</b>${pickProb && pickProb[1] != null ? ` (${(pickProb[1] * 100).toFixed(0)}%)` : ''} · ${esc(t('predConf'))} ${esc(P.confidence || '—')}</summary>
+    <div class="predbody">
+      <div class="pbars">${bars}</div>
+      <p class="psum">${esc(P.summary || '')}</p>
+      ${factors ? `<ul class="pfac">${factors}</ul>` : ''}
+      ${P.value ? `<p class="pval"><b>${esc(t('predValue'))}:</b> ${esc(P.value)}</p>` : ''}
+      ${src ? `<p class="pmeta">${esc(t('predSources'))}: ${src}</p>` : ''}
+      <p class="pmeta">${esc(t('predWhen', { t: fmtTime(P.t) }))} · ${esc(t('predDisclaimer'))}
+        <button class="link" data-act="predict" data-force="1" data-id="${esc(E.id)}" ${busy ? 'disabled' : ''}>${esc(t(busy ? 'predBusy' : 'predRedo'))}</button></p>
+    </div></details>`;
+}
 const PROPS = {}, POPEN = new Set(), PSTAT = {}, PALT = {};
-const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists'], ['threes', 'pThrees'], ['points_rebounds_assists', 'pPRA'], ['points_rebounds', 'pPR'], ['points_assists', 'pPA'], ['rebounds_assists', 'pRA'], ['steals', 'pSteals'], ['blocks', 'pBlocks'], ['turnovers', 'pTurnovers']];
+const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists'], ['threes', 'pThrees'], ['points_rebounds_assists', 'pPRA'], ['steals', 'pSteals'], ['blocks', 'pBlocks'], ['turnovers', 'pTurnovers']];
 function propsShell(E){
   return `<details class="props" data-pid="${esc(E.id)}" ${POPEN.has(E.id) ? 'open' : ''}><summary>${esc(t('propsTitle'))}</summary>
     <div class="pbody">${POPEN.has(E.id) ? propsBody(E.id) : ''}</div></details>`;
@@ -810,6 +863,7 @@ function gameHTML(E){
     </table></div>
     ${isToday || started ? booksHTML(E) : ''}
     ${E.sport === 'basketball_nba' ? propsShell(E) : ''}
+    ${E.sport === 'basketball_nba' || String(E.sport).startsWith('soccer_') ? predHTML(E) : ''}
   </article>`;
 }
 
@@ -940,7 +994,8 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
   busy = false; btn.disabled = false; btn.textContent = t('refresh');
 });
 document.getElementById('list').addEventListener('toggle', e => {
-  const d = e.target; if (!d.matches || !d.matches('details.props')) return;
+  const d = e.target;
+  if (d.matches && d.matches('details.pred')) { if (d.open) PRED_OPEN.add(d.dataset.pred); else PRED_OPEN.delete(d.dataset.pred); return; } if (!d.matches || !d.matches('details.props')) return;
   const id = d.dataset.pid;
   if (d.open) { POPEN.add(id); d.querySelector('.pbody').innerHTML = propsBody(id); loadProps(id); } else POPEN.delete(id);
 }, true);
@@ -950,6 +1005,14 @@ document.getElementById('list').addEventListener('click', async e => {
   if (act === 'pstat' || act === 'palt') {
     if (act === 'pstat') PSTAT[pid] = b.dataset.v; else PALT[pid] = !PALT[pid];
     const el = b.closest('.pbody'); if (el) el.innerHTML = propsBody(pid);
+    return;
+  }
+  if (act === 'predict') {
+    PRED_BUSY.add(pid); PRED_OPEN.add(pid); render();
+    toast(t('predWait'), 90000);
+    try { await api(`/api/events/${encodeURIComponent(pid)}/predict?lang=${S.lang}${b.dataset.force ? '&force=1' : ''}`, { method: 'POST' }); toast(t('predDone')); await load(); }
+    catch (ex) { if (!ex.auth) toast(I18N.es[ex.code] ? t(ex.code) : ex.message, 9000); }
+    PRED_BUSY.delete(pid); render();
     return;
   }
   if (act === 'prefresh') {

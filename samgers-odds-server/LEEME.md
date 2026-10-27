@@ -96,3 +96,19 @@ En **Ajustes** de la app ves los créditos restantes y en qué se gastaron en la
 - `Falta DATABASE_URL`: revisa que la variable diga exactamente `${{Postgres.DATABASE_URL}}` y que la base de datos esté en el mismo proyecto.
 - `Falta ODDS_API_KEY` o error 401: la clave de The Odds API está mal copiada o el plan venció.
 - No puedes entrar: revisa `USERS`. El usuario no distingue mayúsculas; la contraseña sí.
+
+---
+
+## Pronósticos con IA (NBA y fútbol)
+
+Cada partido de NBA y de fútbol tiene un botón **Generar pronóstico**. La IA (Claude, con búsqueda web) revisa lesiones, estado físico, forma reciente, lugar del partido y enfrentamientos directos, los compara con las cuotas y da su probabilidad para cada resultado con la explicación.
+
+Para activarlo, agrega en Railway → **SAMGERS-ODD** → **Variables**:
+
+```
+ANTHROPIC_API_KEY=tu_clave_de_console.anthropic.com
+```
+
+- La clave se crea en **console.anthropic.com** → **API Keys**. Necesita saldo cargado.
+- La búsqueda web debe estar activada para tu organización en la Console.
+- Cada pronóstico se guarda y se reutiliza 3 horas. Máximo 60 pronósticos por día (se puede cambiar con la variable `AI_DAILY_MAX`).

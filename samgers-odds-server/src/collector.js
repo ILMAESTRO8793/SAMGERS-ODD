@@ -60,7 +60,6 @@ const NBA = 'basketball_nba';
 const PROP_GROUPS = [
   ['points', 'rebounds', 'assists'],
   ['threes', 'points_rebounds_assists'],
-  ['points_rebounds', 'points_assists', 'rebounds_assists'],
   ['steals', 'blocks', 'turnovers']
 ].map(g => g.flatMap(m => [`player_${m}`, `player_${m}_alternate`]).join(','));
 function mergeProps(a, b) {
