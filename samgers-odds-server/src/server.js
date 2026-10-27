@@ -115,7 +115,8 @@ app.put('/api/config', wrap(async (req, res) => {
 }));
 
 app.post('/api/refresh', wrap(async (req, res) => {
-  const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  // En "+/− y viceversa" se actualiza el deporte elegido (NBA o fútbol).
+  const tab = req.query.tab === 'flips' ? (req.query.sport === 'soc' ? 'soc' : 'nba') : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
   const league = String(req.query.league || 'all');
   await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab, league)));
   res.json({ ok: true, missing: state.missing.size, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });

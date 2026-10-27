@@ -244,6 +244,7 @@ body{overflow-x:hidden}
     <div class="seg" id="mktSeg">
       <button data-m="all" data-i18n="mkAll"></button><button data-m="h2h">Moneyline</button><button data-m="spreads" data-i18n="mkSpreads"></button><button data-m="totals" data-i18n="mkTotals"></button><button data-m="btts" id="bttsChip">BTTS</button>
     </div>
+    <div class="seg" id="flipSeg"><button data-fs="nba">NBA</button><button data-fs="soc">Soccer</button></div>
     <div class="seg" id="viewSeg">
       <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button>
     </div>
@@ -456,7 +457,7 @@ Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd
 
 Object.assign(I18N.es, {
   tabFlips:'+/− y viceversa', secNba:'NBA',
-  viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Por ahora ninguna cuota cambió de signo.', flipsIntro:'Solo cuotas que cambiaron de signo: abrieron negativas (−) y el día antes o el día del partido están positivas (+), o abrieron positivas y pasaron a negativas. Cambios dentro del mismo signo (por ejemplo −110 a −130) no aparecen aquí. Incluye moneyline, handicap, total, goles por equipo y BTTS de la NBA y del fútbol europeo.',
+  viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Por ahora, en los partidos próximos y en vivo ninguna cuota cambió de signo. Toca "Actualizar ahora" para traer las cuotas más recientes.', flipsIntro:'Solo partidos próximos y en vivo, y solo cuotas que cambiaron de signo: abrieron negativas (−) y el día antes o el día del partido están positivas (+), o abrieron positivas y pasaron a negativas. Cambios dentro del mismo signo (por ejemplo −110 a −130) no aparecen aquí. Incluye moneyline, handicap, total, goles por equipo y BTTS.',
   mkPuck:'Handicap (puck line)', mkGoalsNhl:'Total de goles',
   ppts:'pts de prob.', edge:'Edge', margin:'margen de la casa {m}',
   tagline:'Líneas de FanDuel (NFL, NCAAF, NBA) y Codere (fútbol): apertura, día antes y día del partido',
@@ -475,7 +476,7 @@ Object.assign(I18N.es, {
 });
 Object.assign(I18N.en, {
   tabFlips:'+/− and vice versa', secNba:'NBA',
-  viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No odds have changed sign yet.', flipsIntro:'Only odds that changed sign: opened negative (−) and are positive (+) on the day before or game day, or opened positive and turned negative. Changes within the same sign (e.g. −110 to −130) do not appear here. Includes moneyline, spread, total, team goals and BTTS for the NBA and European soccer.',
+  viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No odds have changed sign yet in upcoming or live games. Tap "Update now" to get the latest odds.', flipsIntro:'Only upcoming and live games, and only odds that changed sign: opened negative (−) and are positive (+) on the day before or game day, or opened positive and turned negative. Changes within the same sign (e.g. −110 to −130) do not appear here. Includes moneyline, spread, total, team goals and BTTS.',
   mkPuck:'Puck line', mkGoalsNhl:'Total goals',
   ppts:'prob. pts', edge:'Edge', margin:'book margin {m}',
   tagline:'FanDuel (NFL, NCAAF, NBA) and Codere (soccer) lines: opening, day before and game day',
@@ -846,17 +847,13 @@ function flipCell(v, mk, flipped){
   return `<td class="${flipped ? (v.p >= 2 ? 'fpos' : 'fneg') : ''}">${pt !== '' && pt != null ? `<span class="pt">${esc(pt)}</span>` : ''}<span class="odd">${esc(price(v.p))}</span></td>`;
 }
 function flipsHTML(all, active){
-  let html = `<p class="hint" style="margin:6px 0 14px">${esc(t('flipsIntro'))}</p>`, total = 0;
-  for (const [title, pick] of [[t('secNba'), E => E.sport === 'basketball_nba'], [t('tabSoc'), E => String(E.sport).startsWith('soccer_')]]) {
-    const evs = all.filter(pick);
-    const r = flipsSection(evs, active);
-    total += r.n;
-    html += `<h2 class="day">${esc(title)}</h2>` + (r.n ? r.html : `<p class="hint">${esc(t('flipsNone'))}</p>`);
-  }
-  return html;
+  const pick = ui.flipSport === 'soc' ? (E => String(E.sport).startsWith('soccer_')) : (E => E.sport === 'basketball_nba');
+  const evs = all.filter(E => pick(E) && active(E));
+  const r = flipsSection(evs, active);
+  return `<p class="hint" style="margin:6px 0 14px">${esc(t('flipsIntro'))}</p>` + (r.n ? r.html : `<div class="notice"><h2>${esc(t('flipsNoneT'))}</h2><p>${esc(t('flipsNone'))}</p></div>`);
 }
 function flipsSection(evs, active){
-  const list = evs.filter(active).sort((a, b) => a.c - b.c).concat(evs.filter(E => !active(E)).sort((a, b) => b.c - a.c));
+  const list = evs.slice().sort((a, b) => a.c - b.c);
   let html = '', n = 0;
   for (const E of list) {
     const rows = flipRows(E); if (!rows.length) continue;
@@ -877,13 +874,15 @@ function render(){
   applyStatic();
   if (!busy) document.getElementById('btnRefresh').textContent = t('refresh');
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
-  document.getElementById('bttsChip').hidden = !socLike(ui.tab);
-  if (ui.mkt === 'btts' && !socLike(ui.tab)) ui.mkt = 'all';
+  document.getElementById('bttsChip').hidden = !(socLike(ui.tab) || (ui.tab === 'flips' && ui.flipSport === 'soc'));
+  if (ui.mkt === 'btts' && !socLike(ui.tab) && !(ui.tab === 'flips' && ui.flipSport === 'soc')) ui.mkt = 'all';
   document.querySelectorAll('#mktSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ui.mkt));
   const isFlips = ui.tab === 'flips';
   if (ui.view === 'flips') ui.view = 'up';
+  if (ui.flipSport !== 'soc') ui.flipSport = 'nba';
   document.getElementById('viewSeg').style.display = isFlips ? 'none' : '';
-  document.getElementById('btnRefresh').hidden = isFlips;
+  document.getElementById('flipSeg').style.display = isFlips ? '' : 'none';
+  document.querySelectorAll('#flipSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.fs === ui.flipSport));
   document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === ui.view));
   document.querySelectorAll('#fmtSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === S.fmt));
   if (!CFG) return;
@@ -929,13 +928,14 @@ function render(){
 document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; ui.tab = b.dataset.tab; saveLocal(); EV = []; render(); load(); openStream(); });
 document.getElementById('mktSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.mkt = b.dataset.m; saveLocal(); render(); });
 document.getElementById('viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.view = b.dataset.v; saveLocal(); render(); });
+document.getElementById('flipSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.flipSport = b.dataset.fs; saveLocal(); render(); });
 document.getElementById('fmtSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.fmt = b.dataset.f; saveLocal(); render(); });
 document.getElementById('langSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.lang = b.dataset.l; saveLocal(); render(); });
 document.getElementById('leagueSel').addEventListener('change', e => { ui.league = e.target.value; saveLocal(); render(); openStream(); });
 document.getElementById('btnRefresh').addEventListener('click', async () => {
   const btn = document.getElementById('btnRefresh');
   busy = true; btn.disabled = true; btn.textContent = t('refreshing');
-  try { const j = await api('/api/refresh?tab=' + ui.tab + '&league=' + encodeURIComponent(ui.tab === 'soc' ? ui.league : 'all'), { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else if (j.missing) toast(t('missingFd', { n: j.missing }), 8000); else toast(t('updated')); await load(); }
+  try { const j = await api('/api/refresh?tab=' + ui.tab + '&sport=' + (ui.flipSport || 'nba') + '&league=' + encodeURIComponent(ui.tab === 'soc' ? ui.league : 'all'), { method: 'POST' }); if (j.error) toast(t('errPrefix') + j.error, 7000); else if (j.missing) toast(t('missingFd', { n: j.missing }), 8000); else toast(t('updated')); await load(); }
   catch (e) { if (!e.auth) toast(e.message, 7000); }
   busy = false; btn.disabled = false; btn.textContent = t('refresh');
 });
