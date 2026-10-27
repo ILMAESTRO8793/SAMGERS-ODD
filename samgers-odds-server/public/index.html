@@ -472,10 +472,10 @@ Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 
 Object.assign(I18N.es, {
-  predTitle:'Pronóstico IA', predMake:'Generar pronóstico', predRedo:'Actualizar pronóstico', predBusy:'Analizando…',
-  predHint:'La IA busca lesiones, estado físico, forma reciente, lugar del partido y enfrentamientos, y los compara con las cuotas. Tarda entre 30 segundos y 2 minutos.',
+  predTitle:'Pronóstico', predMake:'Generar pronóstico', predRedo:'Actualizar pronóstico', predBusy:'Analizando…',
+  predHint:'Gratis: combina las cuotas de las 5 casas y su movimiento con datos públicos de ESPN (lesiones, forma reciente, local/visitante, descanso, estadio y enfrentamientos). Tarda unos segundos.',
   predConf:'confianza', predMkt:'casas {p}', predValue:'Valor', predSources:'Fuentes', predWhen:'Generado {t}', predDisclaimer:'es una estimación, no una garantía.',
-  predWait:'Analizando el partido con IA… puede tardar hasta 2 minutos.', predDone:'Pronóstico listo',
+  predWait:'Analizando el partido…', predDone:'Pronóstico listo',
   noAiKey:'Falta la clave de la IA (ANTHROPIC_API_KEY) en las variables de Railway.', aiCap:'Se alcanzó el máximo de pronósticos de hoy.', onlyNbaSoccer:'Los pronósticos son solo para NBA y fútbol.',
   tabFlips:'+/− y viceversa', secNba:'NBA',
   viewFlips:'Cambios + / −', flipCol:'Cambio', flipBefore:'el día antes', flipGame:'el día del partido', flipsNoneT:'No hay cambios de signo', flipsNone:'Por ahora, en los partidos próximos y en vivo ninguna cuota cambió de signo. Toca "Actualizar ahora" para traer las cuotas más recientes.', flipsIntro:'Solo partidos próximos y en vivo, y solo cuotas que cambiaron de signo: abrieron negativas (−) y el día antes o el día del partido están positivas (+), o abrieron positivas y pasaron a negativas. Cambios dentro del mismo signo (por ejemplo −110 a −130) no aparecen aquí. Incluye moneyline, handicap, total, goles por equipo y BTTS.',
@@ -496,10 +496,10 @@ Object.assign(I18N.es, {
   mkTeamGoals:'Goles por equipo (lo que espera la casa)', ttOver:'{team}: Más de', ttUnder:'{team}: Menos de', goalsUp:'sube', goalsDown:'baja'
 });
 Object.assign(I18N.en, {
-  predTitle:'AI prediction', predMake:'Generate prediction', predRedo:'Update prediction', predBusy:'Analyzing…',
-  predHint:'The AI looks up injuries, fitness, recent form, venue and head-to-head, and compares them with the odds. It takes 30 seconds to 2 minutes.',
+  predTitle:'Prediction', predMake:'Generate prediction', predRedo:'Update prediction', predBusy:'Analyzing…',
+  predHint:'Free: combines the odds from the 5 books and their movement with public ESPN data (injuries, recent form, home/away, rest, venue and head-to-head). Takes a few seconds.',
   predConf:'confidence', predMkt:'books {p}', predValue:'Value', predSources:'Sources', predWhen:'Generated {t}', predDisclaimer:'this is an estimate, not a guarantee.',
-  predWait:'Analyzing the game with AI… it can take up to 2 minutes.', predDone:'Prediction ready',
+  predWait:'Analyzing the game…', predDone:'Prediction ready',
   noAiKey:'The AI key (ANTHROPIC_API_KEY) is missing in the Railway variables.', aiCap:'Today\'s prediction limit was reached.', onlyNbaSoccer:'Predictions are only for the NBA and soccer.',
   tabFlips:'+/− and vice versa', secNba:'NBA',
   viewFlips:'+ / − flips', flipCol:'Change', flipBefore:'day before', flipGame:'game day', flipsNoneT:'No sign changes', flipsNone:'No odds have changed sign yet in upcoming or live games. Tap "Update now" to get the latest odds.', flipsIntro:'Only upcoming and live games, and only odds that changed sign: opened negative (−) and are positive (+) on the day before or game day, or opened positive and turned negative. Changes within the same sign (e.g. −110 to −130) do not appear here. Includes moneyline, spread, total, team goals and BTTS.',
@@ -1009,7 +1009,7 @@ document.getElementById('list').addEventListener('click', async e => {
   }
   if (act === 'predict') {
     PRED_BUSY.add(pid); PRED_OPEN.add(pid); render();
-    toast(t('predWait'), 90000);
+    toast(t('predWait'), 30000);
     try { await api(`/api/events/${encodeURIComponent(pid)}/predict?lang=${S.lang}${b.dataset.force ? '&force=1' : ''}`, { method: 'POST' }); toast(t('predDone')); await load(); }
     catch (ex) { if (!ex.auth) toast(I18N.es[ex.code] ? t(ex.code) : ex.message, 9000); }
     PRED_BUSY.delete(pid); render();

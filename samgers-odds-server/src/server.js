@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { SPORTS, BOOKS, PRIO, PROPS_BOOKS, TZ, DAY, trackedKeys, isActive } from './config.js';
 import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24, restoreSnapshots } from './db.js';
 import { quota } from './odds.js';
-import { predict, aiReady } from './predict.js';
+import { predict } from './predict.js';
 import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -146,18 +146,16 @@ app.post('/api/events/:id/props/refresh', wrap(async (req, res) => {
   if (e.sport !== 'basketball_nba') return res.status(400).json({ error: 'notNba' });
   try { const ok = await fetchProps(e, 'props-manual'); res.json({ ok }); } catch (err) { res.status(502).json({ error: err.message }); }
 }));
-/* Pronóstico con IA (Claude + búsqueda web). Se guarda y se reutiliza 3 horas; máximo 60 al día para cuidar el costo. */
+/* Pronóstico gratis (cuotas + datos públicos de ESPN). Se guarda y se reutiliza 1 hora. */
 const predicting = new Map();
 app.post('/api/events/:id/predict', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
   if (!(e.sport === 'basketball_nba' || e.sport.startsWith('soccer_'))) return res.status(400).json({ error: 'onlyNbaSoccer' });
-  if (!aiReady()) return res.status(400).json({ error: 'noAiKey' });
   const force = req.query.force === '1';
-  if (e.prediction && !force && Date.now() - e.prediction.t < 3 * 3600e3) return res.json({ ok: true, pred: e.prediction });
-  const used = await q(`select count(*)::int as n from events where prediction is not null and (prediction->>'t')::bigint > $1`, [Date.now() - 864e5]);
-  if (used.rows[0].n >= Number(process.env.AI_DAILY_MAX || 60)) return res.status(429).json({ error: 'aiCap' });
+  const lang = req.query.lang === 'en' ? 'en' : 'es';
+  if (e.prediction && !force && e.prediction.lang === lang && Date.now() - e.prediction.t < 3600e3) return res.json({ ok: true, pred: e.prediction });
   if (!predicting.has(e.id)) {
-    predicting.set(e.id, predict(e, req.query.lang === 'en' ? 'en' : 'es')
+    predicting.set(e.id, predict(e, lang)
       .then(async p => { await q('update events set prediction = $2 where id = $1', [e.id, JSON.stringify(p)]); broadcast(); return p; })
       .finally(() => predicting.delete(e.id)));
   }

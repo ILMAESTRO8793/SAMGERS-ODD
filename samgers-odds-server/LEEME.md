@@ -99,16 +99,6 @@ En **Ajustes** de la app ves los créditos restantes y en qué se gastaron en la
 
 ---
 
-## Pronósticos con IA (NBA y fútbol)
+## Pronósticos (NBA y fútbol)
 
-Cada partido de NBA y de fútbol tiene un botón **Generar pronóstico**. La IA (Claude, con búsqueda web) revisa lesiones, estado físico, forma reciente, lugar del partido y enfrentamientos directos, los compara con las cuotas y da su probabilidad para cada resultado con la explicación.
-
-Para activarlo, agrega en Railway → **SAMGERS-ODD** → **Variables**:
-
-```
-ANTHROPIC_API_KEY=tu_clave_de_console.anthropic.com
-```
-
-- La clave se crea en **console.anthropic.com** → **API Keys**. Necesita saldo cargado.
-- La búsqueda web debe estar activada para tu organización en la Console.
-- Cada pronóstico se guarda y se reutiliza 3 horas. Máximo 60 pronósticos por día (se puede cambiar con la variable `AI_DAILY_MAX`).
+Cada partido de NBA y de fútbol tiene un botón **Generar pronóstico**. Es **gratis**, no necesita ninguna clave extra: combina la probabilidad sin margen de las 5 casas y el movimiento de la línea con datos públicos de ESPN (lesiones, forma reciente, récord de local y visitante, descanso en NBA, estadio y enfrentamientos directos). Si ESPN no tiene el partido, el pronóstico sale solo con las cuotas. Cada pronóstico se guarda 1 hora.
