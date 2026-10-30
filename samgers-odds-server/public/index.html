@@ -137,6 +137,8 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .credtable td,.credtable th{padding:5px 8px}
 .num{width:120px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
 .warnline{color:var(--down);font-weight:600}
+.pchg{font-size:.72rem;font-weight:600;margin-top:3px;line-height:1.35}
+.pchg .up{color:var(--up)} .pchg .down{color:var(--down)} .pchg .flat{color:var(--muted);font-weight:500}
 .pred{border-top:1px solid var(--line);padding:0 0 4px}
 .pred summary,.predbar{padding:10px 14px;font-size:.92rem;color:var(--brand);cursor:pointer}
 .predbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;cursor:default}
@@ -472,6 +474,7 @@ Object.assign(I18N.en, { fromCodere:'Codere (not offered by FanDuel)', missingFd
   'k_props-apertura':'Players (opening)', 'k_props-en-vivo':'Players (game day)', 'k_props-manual':'Players (manual)', 'k_deportes':'Competition list', 'k_internacional':'International' });
 
 Object.assign(I18N.es, {
+  pOpenAt:'apertura {t}',
   predTitle:'Pronóstico', predMake:'Generar pronóstico', predRedo:'Actualizar pronóstico', predBusy:'Analizando…',
   predHint:'Gratis: combina las cuotas de las 5 casas y su movimiento con datos públicos de ESPN (lesiones, forma reciente, local/visitante, descanso, estadio y enfrentamientos). Tarda unos segundos.',
   predConf:'confianza', predMkt:'casas {p}', predValue:'Valor', predSources:'Fuentes', predWhen:'Generado {t}', predDisclaimer:'es una estimación, no una garantía.',
@@ -496,6 +499,7 @@ Object.assign(I18N.es, {
   mkTeamGoals:'Goles por equipo (lo que espera la casa)', ttOver:'{team}: Más de', ttUnder:'{team}: Menos de', goalsUp:'sube', goalsDown:'baja'
 });
 Object.assign(I18N.en, {
+  pOpenAt:'opening {t}',
   predTitle:'Prediction', predMake:'Generate prediction', predRedo:'Update prediction', predBusy:'Analyzing…',
   predHint:'Free: combines the odds from the 5 books and their movement with public ESPN data (injuries, recent form, home/away, rest, venue and head-to-head). Takes a few seconds.',
   predConf:'confidence', predMkt:'books {p}', predValue:'Value', predSources:'Sources', predWhen:'Generated {t}', predDisclaimer:'this is an estimate, not a guarantee.',
@@ -763,6 +767,22 @@ function propsShell(E){
     <div class="pbody">${POPEN.has(E.id) ? propsBody(E.id) : ''}</div></details>`;
 }
 const altLabel = pt => (Math.round(pt * 2) / 2 % 1 === 0.5 ? Math.ceil(pt) + '+' : String(pt));
+/* Cambio desde la apertura de cada casa: línea (sube/baja) y cuotas de Más y Menos */
+function propChg(om, m){
+  if (!om || !m) return '';
+  const parts = [];
+  if (om.pt != null && m.pt != null && om.pt !== m.pt) {
+    const up = m.pt > om.pt;
+    parts.push(`<span class="${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${esc(t('line'))} ${esc(om.pt)} → ${esc(m.pt)}</span>`);
+  }
+  for (const [k, lab] of [['o', 'pOver'], ['u', 'pUnder']]) {
+    if (om[k] != null && m[k] != null && Math.abs(om[k] - m[k]) >= 0.005) {
+      const up = m[k] > om[k];
+      parts.push(`<span class="${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${esc(t(lab))} ${esc(price(om[k]))} → ${esc(price(m[k]))}</span>`);
+    }
+  }
+  return `<div class="pchg">${parts.length ? parts.join('<br>') : `<span class="flat">${esc(t('noChange'))}</span>`}</div>`;
+}
 function propsBody(id){
   const P = PROPS[id];
   if (!P) return `<p class="pempty">${esc(t('pLoading'))}</p>`;
@@ -778,8 +798,8 @@ function propsBody(id){
   books.forEach(b => Object.keys((cur[b] || {})[st] || {}).forEach(n => players.add(n)));
   const fd = (cur.fanduel || {})[st] || {};
   const list = [...players].sort((a, b) => ((fd[b] && fd[b].main && fd[b].main.pt) || 0) - ((fd[a] && fd[a].main && fd[a].main.pt) || 0));
-  const opened = (P.open && P.open.by && P.open.by.fanduel && P.open.by.fanduel[st]) || {};
-  const meta = `<div class="pmeta">${esc(t('pUpdated', { t: fmtTime(P.cur.t) }))}</div>`;
+  const openBy = (P.open && P.open.by) || {};
+  const meta = `<div class="pmeta">${esc(t('pUpdated', { t: fmtTime(P.cur.t) }))}${P.open && P.open.t ? ' · ' + esc(t('pOpenAt', { t: fmtTime(P.open.t) })) : ''}</div>`;
   if (!list.length) return bar + meta + `<p class="pempty">${esc(t('pNone'))}</p>`;
   const head = `<thead><tr><th>${esc(t('pPlayer'))}</th>${books.map(b => `<th>${esc(BOOKS[b])}</th>`).join('')}</tr></thead>`;
   const rows = list.map(n => {
@@ -792,8 +812,8 @@ function propsBody(id){
         return `<td><div class="palts">${alts.map(a => `<span><b>${esc(altLabel(a.pt))}</b> ${esc(price(a.o) ?? '')}${a.u != null ? ' / ' + esc(t('pUnder')) + ' ' + esc(price(a.u)) : ''}</span>`).join('')}</div></td>`;
       }
       if (!x.main) return '<td><span class="empty">—</span></td>';
-      const o = b === 'fanduel' && opened[n] && opened[n].main && opened[n].main.pt !== x.main.pt ? `<div class="popen">${esc(t('pOpened', { x: opened[n].main.pt }))}</div>` : '';
-      return `<td><div class="pline">${esc(x.main.pt)}</div><div class="pou">${esc(t('pOver'))} <b>${esc(price(x.main.o) ?? '—')}</b><br>${esc(t('pUnder'))} <b>${esc(price(x.main.u) ?? '—')}</b></div>${o}</td>`;
+      const om = (((openBy[b] || {})[st] || {})[n] || {}).main;
+      return `<td><div class="pline">${esc(x.main.pt)}</div><div class="pou">${esc(t('pOver'))} <b>${esc(price(x.main.o) ?? '—')}</b><br>${esc(t('pUnder'))} <b>${esc(price(x.main.u) ?? '—')}</b></div>${propChg(om, x.main)}</td>`;
     }).join('');
     return `<tr><td class="pl">${esc(n)}</td>${cells}</tr>`;
   }).join('');

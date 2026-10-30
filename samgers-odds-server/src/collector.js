@@ -77,7 +77,19 @@ export async function fetchProps(e, kind) {
   }
   const t = Date.now();
   const f = { props_t: new Date(t) };
-  if (p) { f.props = { t, by: p }; if (!e.props_open) f.props_open = { t, by: p }; }
+  if (p) {
+    f.props = { t, by: p };
+    // Apertura por casa y por jugador: la primera vez que cada casa publica la línea de ese jugador.
+    const open = e.props_open && e.props_open.by ? e.props_open : { t, by: {} };
+    let added = !e.props_open;
+    for (const b in p) for (const st in p[b]) for (const pl in p[b][st]) {
+      const src = p[b][st][pl];
+      if (!src || !src.main) continue;
+      const ob = (open.by[b] = open.by[b] || {}), os = (ob[st] = ob[st] || {});
+      if (!os[pl] || !os[pl].main) { os[pl] = { main: src.main, ot: t }; added = true; }
+    }
+    if (added) f.props_open = open;
+  }
   await updateEvent(e.id, f);
   if (p) notify();
   return !!p;
