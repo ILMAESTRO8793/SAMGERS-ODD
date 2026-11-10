@@ -248,6 +248,7 @@ body{overflow-x:hidden}
       <button class="tab" role="tab" data-tab="nfl">NFL</button>
       <button class="tab" role="tab" data-tab="ncaaf">NCAAF</button>
       <button class="tab" role="tab" data-tab="nba">NBA</button>
+      <button class="tab" role="tab" data-tab="ncaab">NCAAB</button>
       <button class="tab" role="tab" data-tab="nhl">NHL</button>
       <button class="tab" role="tab" data-tab="soc" data-i18n="tabSoc"></button>
       <button class="tab" role="tab" data-tab="flips" data-i18n="tabFlips"></button>
@@ -262,7 +263,7 @@ body{overflow-x:hidden}
     <div class="seg" id="mktSeg">
       <button data-m="all" data-i18n="mkAll"></button><button data-m="h2h">Moneyline</button><button data-m="spreads" data-i18n="mkSpreads"></button><button data-m="totals" data-i18n="mkTotals"></button><button data-m="btts" id="bttsChip">BTTS</button>
     </div>
-    <div class="seg" id="flipSeg"><button data-fs="nba">NBA</button><button data-fs="soc">Soccer</button></div>
+    <div class="seg" id="flipSeg"><button data-fs="nba">NBA</button><button data-fs="ncaab">NCAAB</button><button data-fs="soc">Soccer</button></div>
     <div class="seg" id="viewSeg">
       <button data-v="up" data-i18n="viewUp"></button><button data-v="past" data-i18n="viewPast"></button>
     </div>
@@ -285,7 +286,7 @@ body{overflow-x:hidden}
 
     <label data-i18n="sportsTitle"></label>
     <div class="checks">
-      <label><input type="checkbox" id="s_nfl"> NFL</label><label><input type="checkbox" id="s_ncaaf"> NCAAF</label><label><input type="checkbox" id="s_nba"> NBA</label><label><input type="checkbox" id="s_nhl"> NHL</label>
+      <label><input type="checkbox" id="s_nfl"> NFL</label><label><input type="checkbox" id="s_ncaaf"> NCAAF</label><label><input type="checkbox" id="s_nba"> NBA</label><label><input type="checkbox" id="s_ncaab"> NCAAB</label><label><input type="checkbox" id="s_nhl"> NHL</label>
       <label><input type="checkbox" id="s_soc"> <span data-i18n="wSoc"></span></label>
     </div>
     <label style="font-weight:500"><span data-i18n="watchLabel"></span>
@@ -526,14 +527,14 @@ Object.assign(I18N.en, {
 
 Object.assign(I18N.es, {
   tagline:'Cuotas de 5 casas: apertura, día antes y día del partido',
-  legend:'Cada mercado se toma de 5 casas en orden de prioridad (fútbol: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA y NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). Si la primera no lo tiene, se usa la siguiente y se marca de cuál casa vino. Apertura: la cuota del primer día en que se publica el partido. Día antes: la cuota del día anterior; se actualiza durante ese día y queda fija con la de las 11:50 pm. Día del partido: la cuota actual y en vivo. En el moneyline, el % es la probabilidad sin margen; Mov. muestra cuántos puntos subió o bajó desde la apertura. En "Goles por equipo", sube o baja indica cuántos goles se esperan de cada equipo.',
+  legend:'Cada mercado se toma de 5 casas en orden de prioridad (fútbol: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA, NCAAB y NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). Si la primera no lo tiene, se usa la siguiente y se marca de cuál casa vino. Apertura: la cuota del primer día en que se publica el partido. Día antes: la cuota del día anterior; se actualiza durante ese día y queda fija con la de las 11:50 pm. Día del partido: la cuota actual y en vivo. En el moneyline, el % es la probabilidad sin margen; Mov. muestra cuántos puntos subió o bajó desde la apertura. En "Goles por equipo", sube o baja indica cuántos goles se esperan de cada equipo.',
   notYet:'Ninguna de las 5 casas publica este partido todavía', pubBetween:'Se publicó entre <b>{a}</b> y <b>{b}</b>',
   pubSeen:'Ya estaba publicado cuando la app lo vio por primera vez ({t}).', noOdds:'Todavía no hay cuotas para este partido',
   fromOther:'de {book}', vsCons:'vs consenso de {n} casa(s)', booksLive:'Cuotas en vivo de las 5 casas', booksNow:'Cuotas actuales de las 5 casas', booksFinal:'Cuotas finales de las 5 casas'
 });
 Object.assign(I18N.en, {
   tagline:'Odds from 5 books: opening, day before and game day',
-  legend:'Each market is taken from 5 books in priority order (soccer: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA and NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). If the first does not have it, the next one is used and labeled. Opening: the odds from the first day the game is posted. Day before: the odds on the previous day; it updates during that day and locks with the 11:50 pm reading. Game day: current and live odds. In the moneyline, the % is the no-margin probability; Move shows how many points it rose or fell since the opening. In "Team goals", up or down shows how many goals each team is expected to score.',
+  legend:'Each market is taken from 5 books in priority order (soccer: FanDuel, Codere, Pinnacle, DraftKings, 1xBet; NFL, NCAAF, NBA, NCAAB and NHL: FanDuel, DraftKings, BetMGM, Caesars, Pinnacle). If the first does not have it, the next one is used and labeled. Opening: the odds from the first day the game is posted. Day before: the odds on the previous day; it updates during that day and locks with the 11:50 pm reading. Game day: current and live odds. In the moneyline, the % is the no-margin probability; Move shows how many points it rose or fell since the opening. In "Team goals", up or down shows how many goals each team is expected to score.',
   notYet:'None of the 5 books has posted this game yet', pubBetween:'Posted between <b>{a}</b> and <b>{b}</b>',
   pubSeen:'It was already posted when the app first saw it ({t}).', noOdds:'No odds for this game yet',
   fromOther:'from {book}', vsCons:'vs consensus of {n} book(s)', booksLive:'Live odds from the 5 books', booksNow:'Current odds from the 5 books', booksFinal:'Final odds from the 5 books'
@@ -882,8 +883,8 @@ function gameHTML(E){
       <tbody>${body}</tbody>
     </table></div>
     ${isToday || started ? booksHTML(E) : ''}
-    ${E.sport === 'basketball_nba' ? propsShell(E) : ''}
-    ${E.sport === 'basketball_nba' || String(E.sport).startsWith('soccer_') ? predHTML(E) : ''}
+    ${String(E.sport).startsWith('basketball_') ? propsShell(E) : ''}
+    ${String(E.sport).startsWith('basketball_') || String(E.sport).startsWith('soccer_') ? predHTML(E) : ''}
   </article>`;
 }
 
@@ -921,7 +922,7 @@ function flipCell(v, mk, flipped){
   return `<td class="${flipped ? (v.p >= 2 ? 'fpos' : 'fneg') : ''}">${pt !== '' && pt != null ? `<span class="pt">${esc(pt)}</span>` : ''}<span class="odd">${esc(price(v.p))}</span></td>`;
 }
 function flipsHTML(all, active){
-  const pick = ui.flipSport === 'soc' ? (E => String(E.sport).startsWith('soccer_')) : (E => E.sport === 'basketball_nba');
+  const pick = ui.flipSport === 'soc' ? (E => String(E.sport).startsWith('soccer_')) : ui.flipSport === 'ncaab' ? (E => E.sport === 'basketball_ncaab') : (E => E.sport === 'basketball_nba');
   const evs = all.filter(E => pick(E) && active(E));
   const r = flipsSection(evs, active);
   return `<p class="hint" style="margin:6px 0 14px">${esc(t('flipsIntro'))}</p>` + (r.n ? r.html : `<div class="notice"><h2>${esc(t('flipsNoneT'))}</h2><p>${esc(t('flipsNone'))}</p></div>`);
@@ -953,7 +954,7 @@ function render(){
   document.querySelectorAll('#mktSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ui.mkt));
   const isFlips = ui.tab === 'flips';
   if (ui.view === 'flips') ui.view = 'up';
-  if (ui.flipSport !== 'soc') ui.flipSport = 'nba';
+  if (!['soc', 'ncaab'].includes(ui.flipSport)) ui.flipSport = 'nba';
   document.getElementById('viewSeg').style.display = isFlips ? 'none' : '';
   document.getElementById('flipSeg').style.display = isFlips ? '' : 'none';
   document.querySelectorAll('#flipSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.fs === ui.flipSport));
@@ -1069,7 +1070,7 @@ function creditsHTML(){
 async function openSettings(){
   try { ST = await api('/api/status'); } catch (e) { if (e.auth) return; }
   document.getElementById('credits').innerHTML = creditsHTML();
-  for (const tb of ['nfl', 'ncaaf', 'nba', 'nhl', 'soc']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
+  for (const tb of ['nfl', 'ncaaf', 'nba', 'ncaab', 'nhl', 'soc']) document.getElementById('s_' + tb).checked = !!CFG.sports[tb];
   document.getElementById('watchMin').value = String(CFG.watchMin);
   document.getElementById('liveSec').value = String(CFG.liveSec);
   document.getElementById('dailyCap').value = CFG.dailyCap;
@@ -1085,7 +1086,7 @@ document.getElementById('btnSettings').addEventListener('click', openSettings);
 document.getElementById('btnCancel').addEventListener('click', () => document.getElementById('dlgSettings').close());
 document.getElementById('btnSave').addEventListener('click', async () => {
   const body = {
-    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'nhl', 'soc'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
+    sports: Object.fromEntries(['nfl', 'ncaaf', 'nba', 'ncaab', 'nhl', 'soc'].map(tb => [tb, document.getElementById('s_' + tb).checked])),
     watchMin: Number(document.getElementById('watchMin').value),
     liveSec: Number(document.getElementById('liveSec').value),
     dailyCap: Number(document.getElementById('dailyCap').value),

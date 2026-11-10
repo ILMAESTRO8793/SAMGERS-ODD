@@ -7,6 +7,7 @@ import { TZ, leagueName } from './config.js';
 const ESPN = process.env.ESPN_BASE || 'https://site.api.espn.com/apis/site/v2/sports';
 const SLUG = {
   basketball_nba: 'basketball/nba',
+  basketball_ncaab: 'basketball/mens-college-basketball',
   soccer_epl: 'soccer/eng.1', soccer_spain_la_liga: 'soccer/esp.1', soccer_italy_serie_a: 'soccer/ita.1',
   soccer_germany_bundesliga: 'soccer/ger.1', soccer_france_ligue_one: 'soccer/fra.1', soccer_uefa_champs_league: 'soccer/uefa.champions',
   soccer_uefa_europa_league: 'soccer/uefa.europa', soccer_uefa_europa_conference_league: 'soccer/uefa.europa.conf',
@@ -80,7 +81,7 @@ async function espnData(e) {
     if (!T.form && l5 && l5.events) T.form = l5.events.map(x => String(x.gameResult || '').toUpperCase().slice(0, 1)).filter(Boolean).slice(0, 5);
     const inj = (sum.injuries || []).find(g => g.team && (g.team.id === id || sim(g.team.displayName, name) >= 0.5));
     T.injuries = ((inj && inj.injuries) || []).map(x => ({ name: x.athlete && x.athlete.displayName, status: x.status || (x.type && x.type.description) || '' })).filter(x => x.name);
-    if (e.sport === 'basketball_nba' && id) {
+    if (e.sport.startsWith('basketball_') && id) {
       const sch = await get(`${ESPN}/${slug}/teams/${id}/schedule`);
       const prev = ((sch && sch.events) || []).map(x => Date.parse(x.date)).filter(d => d < c - 3 * 3600e3).sort((a, b) => b - a)[0];
       if (prev) T.restDays = Math.max(0, Math.round((c - prev) / 864e5) - 1);
@@ -209,6 +210,6 @@ export async function predict(e, lang = 'es') {
     summary: L.sum(pick, pct(order[0][1]), why.length ? `${L.whyBase}: ${why.join('; ')}.` : L.noAdj),
     factors, value: values.length ? values.join('; ') : L.noValue,
     sources: espn && espn.link ? [{ title: 'ESPN', url: espn.link }] : [],
-    model: 'samgers-v1', lang, t: Date.now(), espn: !!espn, league: soc ? leagueName(e.sport) : 'NBA', tz: TZ
+    model: 'samgers-v1', lang, t: Date.now(), espn: !!espn, league: leagueName(e.sport), tz: TZ
   };
 }

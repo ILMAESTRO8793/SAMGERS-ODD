@@ -71,7 +71,7 @@ export async function fetchProps(e, kind) {
   let p = null;
   for (const markets of PROP_GROUPS) {
     try {
-      const j = await apiGet(`/sports/${NBA}/events/${e.id}/odds`, oddsParams(PROPS_BOOKS.join(','), markets), kind, { allow404: true });
+      const j = await apiGet(`/sports/${e.sport}/events/${e.id}/odds`, oddsParams(PROPS_BOOKS.join(','), markets), kind, { allow404: true });
       p = mergeProps(p, normProps(j));
     } catch (err) { if (err.fatal) throw err; }
   }

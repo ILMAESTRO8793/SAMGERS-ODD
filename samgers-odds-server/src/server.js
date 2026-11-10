@@ -90,7 +90,7 @@ app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, s
 app.get('/api/events', wrap(async (req, res) => {
   const cfg = await getConfig();
   const tab = req.query.tab === 'flips' ? 'flips' : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  const keys = tab === 'flips' ? [...trackedKeys(cfg, 'nba'), ...trackedKeys(cfg, 'soc')] : trackedKeys(cfg, tab);
+  const keys = tab === 'flips' ? [...trackedKeys(cfg, 'nba'), ...trackedKeys(cfg, 'ncaab'), ...trackedKeys(cfg, 'soc')] : trackedKeys(cfg, tab);
   const now = Date.now();
   const rows = keys.length ? await eventsBySports(keys, now - 14 * DAY, now + 30 * DAY) : [];
   res.json({ events: rows.map(shape), status: await statusInfo() });
@@ -118,7 +118,7 @@ app.put('/api/config', wrap(async (req, res) => {
 
 app.post('/api/refresh', wrap(async (req, res) => {
   // En "+/− y viceversa" se actualiza el deporte elegido (NBA o fútbol).
-  const tab = req.query.tab === 'flips' ? (req.query.sport === 'soc' ? 'soc' : 'nba') : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  const tab = req.query.tab === 'flips' ? (['soc', 'ncaab'].includes(req.query.sport) ? req.query.sport : 'nba') : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
   const league = String(req.query.league || 'all');
   await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab, league)));
   res.json({ ok: true, missing: state.missing.size, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
@@ -135,7 +135,7 @@ app.get('/api/events/:id/props', wrap(async (req, res) => {
   // Solo se actualizan los partidos que abres: si es hoy (o se está jugando) y la lectura tiene más de 30 min.
   const now = Date.now(), c = x.commence.getTime(), cfg = await getConfig();
   const today = new Date(c).toLocaleDateString('en-CA', { timeZone: TZ }) === new Date(now).toLocaleDateString('en-CA', { timeZone: TZ });
-  if (x.sport === 'basketball_nba' && !x.ended && (today || (c <= now && now - c < 5 * 3600e3)) &&
+  if (x.sport.startsWith('basketball_') && !x.ended && (today || (c <= now && now - c < 5 * 3600e3)) &&
       (!x.props_t || now - x.props_t.getTime() >= 30 * 60e3) && (await usedLast24()) < cfg.dailyCap) {
     try { await fetchProps(x, 'props-en-vivo'); x = await eventRow(req.params.id); } catch (err) { console.error('[props]', err.message); }
   }
@@ -143,14 +143,14 @@ app.get('/api/events/:id/props', wrap(async (req, res) => {
 }));
 app.post('/api/events/:id/props/refresh', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
-  if (e.sport !== 'basketball_nba') return res.status(400).json({ error: 'notNba' });
+  if (!e.sport.startsWith('basketball_')) return res.status(400).json({ error: 'notNba' });
   try { const ok = await fetchProps(e, 'props-manual'); res.json({ ok }); } catch (err) { res.status(502).json({ error: err.message }); }
 }));
 /* Pronóstico gratis (cuotas + datos públicos de ESPN). Se guarda y se reutiliza 1 hora. */
 const predicting = new Map();
 app.post('/api/events/:id/predict', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
-  if (!(e.sport === 'basketball_nba' || e.sport.startsWith('soccer_'))) return res.status(400).json({ error: 'onlyNbaSoccer' });
+  if (!(e.sport.startsWith('basketball_') || e.sport.startsWith('soccer_'))) return res.status(400).json({ error: 'onlyNbaSoccer' });
   const force = req.query.force === '1';
   const lang = req.query.lang === 'en' ? 'en' : 'es';
   if (e.prediction && !force && e.prediction.lang === lang && Date.now() - e.prediction.t < 3600e3) return res.json({ ok: true, pred: e.prediction });

@@ -16,6 +16,7 @@ export const SPORTS = {
   nfl: [{ k: 'americanfootball_nfl', n: 'NFL' }],
   ncaaf: [{ k: 'americanfootball_ncaaf', n: 'NCAAF' }],
   nba: [{ k: 'basketball_nba', n: 'NBA' }],
+  ncaab: [{ k: 'basketball_ncaab', n: 'NCAA Basketball' }],
   nhl: [{ k: 'icehockey_nhl', n: 'NHL' }],
   soc: [
     { k: 'soccer_epl', n: 'Premier League' },
@@ -60,7 +61,7 @@ export const BOOKS = { fanduel: 'FanDuel', codere_it: 'Codere', draftkings: 'Dra
 export const PROPS_BOOKS = ['fanduel', 'draftkings', 'betmgm', 'codere_it'];
 
 export const DEFAULT_CONFIG = {
-  sports: { nfl: true, ncaaf: true, nba: true, nhl: true, soc: true },
+  sports: { nfl: true, ncaaf: true, nba: true, ncaab: true, nhl: true, soc: true },
   leagues: null, // null = todas las ligas de fútbol de la lista
   books: ['fanduel', 'codere_it'],
   extras: true,
@@ -80,7 +81,7 @@ export const leagueName = k => {
 };
 export function trackedKeys(cfg, tab) {
   const out = [];
-  for (const t of ['nfl', 'ncaaf', 'nba', 'nhl']) if (cfg.sports[t] && (!tab || tab === t)) out.push(...SPORTS[t].map(l => l.k));
+  for (const t of ['nfl', 'ncaaf', 'nba', 'ncaab', 'nhl']) if (cfg.sports[t] && (!tab || tab === t)) out.push(...SPORTS[t].map(l => l.k));
   if (cfg.sports.soc && (!tab || tab === 'soc')) out.push(...SPORTS.soc.filter(l => cfg.leagues.includes(l.k) && isActive(l.k)).map(l => l.k));
   return out;
 }
