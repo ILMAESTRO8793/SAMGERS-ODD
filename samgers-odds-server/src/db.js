@@ -83,6 +83,12 @@ export async function getConfig() {
     cfgCache.codereSoccer = true;
     await q(`insert into settings (key, value) values ('config', $1) on conflict (key) do update set value = excluded.value`, [{ ...stored, codereSoccer: true }]);
   }
+  // Una sola vez: activa la Nations League aunque ya hubiera ajustes guardados.
+  if (r.rows[0] && !stored.nl2026) {
+    cfgCache.leagues = [...new Set([...(cfgCache.leagues || []), 'soccer_uefa_nations_league'])];
+    cfgCache.nl2026 = true;
+    await q(`update settings set value = $1 where key = 'config'`, [cfgCache]);
+  }
   if (r.rows[0] && !stored.allLeaguesAdded) {
     cfgCache.leagues = [...new Set([...cfgCache.leagues, ...SPORTS.soc.map(l => l.k)])];
     cfgCache.allLeaguesAdded = true;

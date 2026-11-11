@@ -10,7 +10,7 @@ const SLUG = {
   basketball_ncaab: 'basketball/mens-college-basketball',
   soccer_epl: 'soccer/eng.1', soccer_spain_la_liga: 'soccer/esp.1', soccer_italy_serie_a: 'soccer/ita.1',
   soccer_germany_bundesliga: 'soccer/ger.1', soccer_france_ligue_one: 'soccer/fra.1', soccer_uefa_champs_league: 'soccer/uefa.champions',
-  soccer_uefa_europa_league: 'soccer/uefa.europa', soccer_uefa_europa_conference_league: 'soccer/uefa.europa.conf',
+  soccer_uefa_europa_league: 'soccer/uefa.europa', soccer_uefa_europa_conference_league: 'soccer/uefa.europa.conf', soccer_uefa_nations_league: 'soccer/uefa.nations',
   soccer_netherlands_eredivisie: 'soccer/ned.1', soccer_portugal_primeira_liga: 'soccer/por.1', soccer_usa_mls: 'soccer/usa.1',
   soccer_efl_champ: 'soccer/eng.2', soccer_fa_cup: 'soccer/eng.fa', soccer_england_efl_cup: 'soccer/eng.league_cup',
   soccer_spain_copa_del_rey: 'soccer/esp.copa_del_rey', soccer_italy_coppa_italia: 'soccer/ita.coppa_italia',

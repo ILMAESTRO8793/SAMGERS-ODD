@@ -27,6 +27,7 @@ export const SPORTS = {
     { k: 'soccer_uefa_champs_league', n: 'Champions League' },
     { k: 'soccer_uefa_europa_league', n: 'Europa League' },
     { k: 'soccer_uefa_europa_conference_league', n: 'Conference League' },
+    { k: 'soccer_uefa_nations_league', n: 'Nations League (UEFA)' },
     { k: 'soccer_netherlands_eredivisie', n: 'Eredivisie' },
     { k: 'soccer_portugal_primeira_liga', n: 'Primeira Liga' },
     { k: 'soccer_usa_mls', n: 'MLS' },
