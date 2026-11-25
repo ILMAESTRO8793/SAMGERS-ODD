@@ -762,7 +762,7 @@ function predHTML(E){
     </div></details>`;
 }
 const PROPS = {}, POPEN = new Set(), PSTAT = {}, PALT = {};
-const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists'], ['threes', 'pThrees'], ['points_rebounds_assists', 'pPRA'], ['steals', 'pSteals'], ['blocks', 'pBlocks'], ['turnovers', 'pTurnovers']];
+const STATS = [['points', 'pPoints'], ['rebounds', 'pRebounds'], ['assists', 'pAssists'], ['threes', 'pThrees'], ['points_rebounds_assists', 'pPRA'], ['points_rebounds', 'pPR'], ['rebounds_assists', 'pRA'], ['points_assists', 'pPA'], ['steals', 'pSteals'], ['blocks', 'pBlocks'], ['turnovers', 'pTurnovers']];
 function propsShell(E){
   return `<details class="props" data-pid="${esc(E.id)}" ${POPEN.has(E.id) ? 'open' : ''}><summary>${esc(t('propsTitle'))}</summary>
     <div class="pbody">${POPEN.has(E.id) ? propsBody(E.id) : ''}</div></details>`;
