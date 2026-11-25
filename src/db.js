@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { DEFAULT_CONFIG, dayKey } from './config.js';
+import { DEFAULT_CONFIG, SPORTS, dayKey } from './config.js';
 
 const url = process.env.DATABASE_URL;
 if (!url) { console.error('Falta DATABASE_URL'); process.exit(1); }
@@ -58,6 +58,7 @@ alter table events add column if not exists props_open jsonb;
 alter table events add column if not exists props jsonb;
 alter table events add column if not exists props_t timestamptz;
 alter table events add column if not exists cur_snap jsonb;
+alter table events add column if not exists prediction jsonb;
 create table if not exists settings (
   key text primary key,
   value jsonb not null
@@ -72,6 +73,27 @@ export async function getConfig() {
   const r = await q(`select value from settings where key = 'config'`);
   const stored = r.rows[0] ? r.rows[0].value : {};
   cfgCache = { ...DEFAULT_CONFIG, ...stored, sports: { ...DEFAULT_CONFIG.sports, ...(stored.sports || {}) } };
+  if (!Array.isArray(cfgCache.leagues)) cfgCache.leagues = SPORTS.soc.map(l => l.k);
+  // Una sola vez: activa la MLS y todas las ligas europeas nuevas aunque ya hubiera ajustes guardados.
+  if (!stored.codereSoccer) {
+    // Una sola vez: el fútbol pasa de FanDuel a Codere; los partidos que faltan se vuelven a leer desde Codere.
+    await q(`update events set open_snap = null, before_snap = null, cur_snap = null, live_snap = null, books = null, xo = null, xt = null,
+             pub_at = null, pub_from = null, pub_hist = false, last_check = null, checks = 0, close_done = false
+             where sport like 'soccer_%' and commence > now()`);
+    cfgCache.codereSoccer = true;
+    await q(`insert into settings (key, value) values ('config', $1) on conflict (key) do update set value = excluded.value`, [{ ...stored, codereSoccer: true }]);
+  }
+  // Una sola vez: activa la Nations League aunque ya hubiera ajustes guardados.
+  if (r.rows[0] && !stored.nl2026) {
+    cfgCache.leagues = [...new Set([...(cfgCache.leagues || []), 'soccer_uefa_nations_league'])];
+    cfgCache.nl2026 = true;
+    await q(`update settings set value = $1 where key = 'config'`, [cfgCache]);
+  }
+  if (r.rows[0] && !stored.allLeaguesAdded) {
+    cfgCache.leagues = [...new Set([...cfgCache.leagues, ...SPORTS.soc.map(l => l.k)])];
+    cfgCache.allLeaguesAdded = true;
+    await q(`update settings set value = $1 where key = 'config'`, [cfgCache]);
+  }
   return cfgCache;
 }
 export async function setConfig(patch) {
@@ -88,7 +110,7 @@ export async function upsertEvent(ev, sport) {
     [ev.id, sport, ev.home_team, ev.away_team, ev.commence_time]);
 }
 
-const JSON_COLS = new Set(['open_snap', 'before_snap', 'live_snap', 'books', 'score', 'xo', 'props_open', 'props', 'cur_snap']);
+const JSON_COLS = new Set(['open_snap', 'before_snap', 'live_snap', 'books', 'score', 'xo', 'props_open', 'props', 'cur_snap', 'prediction']);
 export async function updateEvent(id, fields) {
   const keys = Object.keys(fields);
   if (!keys.length) return;
@@ -119,6 +141,33 @@ export async function creditsSummary() {
 export async function usedLast24() {
   const r = await q(`select coalesce(sum(cost), 0)::int as c from credit_log where ts >= now() - interval '24 hours'`);
   return r.rows[0].c;
+}
+
+/* Una sola vez: recupera de la historia las aperturas y días antes que se borraron al pasar el fútbol a Codere. */
+export async function restoreSnapshots() {
+  const r = await q(`select value from settings where key = 'config'`);
+  const v = r.rows[0] ? r.rows[0].value : {};
+  if (v.snapsRestored) return 0;
+  const ev = await q(`select id, commence, open_snap, before_snap, pub_at from events
+                      where sport like 'soccer_%' and commence > now() - interval '3 days' and (open_snap is null or before_snap is null)`);
+  let n = 0;
+  for (const e of ev.rows) {
+    const f = {};
+    if (!e.open_snap) {
+      const s = await q(`select taken_at, source, data from snapshots where event_id = $1 and kind = 'open' order by taken_at asc limit 1`, [e.id]);
+      if (s.rows[0]) { f.open_snap = { t: s.rows[0].taken_at.getTime(), o: s.rows[0].data, src: s.rows[0].source, b: 'fanduel' }; if (!e.pub_at) f.pub_at = s.rows[0].taken_at; }
+    }
+    if (!e.before_snap) {
+      const dk = dayKey(e.commence.getTime() - 864e5);
+      const s = await q(`select taken_at, source, data from snapshots where event_id = $1 and kind = 'before' order by taken_at desc`, [e.id]);
+      const row = s.rows.find(x => dayKey(x.taken_at.getTime()) === dk);
+      if (row) f.before_snap = { t: row.taken_at.getTime(), o: row.data, src: row.source, b: 'fanduel' };
+    }
+    if (Object.keys(f).length) { await updateEvent(e.id, f); n++; }
+  }
+  await q(`insert into settings (key, value) values ('config', $1) on conflict (key) do update set value = settings.value || $1`, [{ snapsRestored: true }]);
+  cfgCache = null;
+  return n;
 }
 
 export async function prune() {

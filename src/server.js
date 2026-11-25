@@ -2,9 +2,10 @@ import express from 'express';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SPORTS, BOOKS, TZ, DAY, trackedKeys } from './config.js';
-import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary } from './db.js';
+import { SPORTS, BOOKS, PRIO, PROPS_BOOKS, TZ, DAY, trackedKeys, isActive } from './config.js';
+import { migrate, q, getConfig, setConfig, eventsBySports, creditsSummary, usedLast24, restoreSnapshots } from './db.js';
 import { quota } from './odds.js';
+import { predict } from './predict.js';
 import { startCollector, setNotifier, viewers, state, run, liveJob, refreshUpcoming, findOpening, fillBefore, fetchProps } from './collector.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +42,7 @@ function setSession(req, res, value, maxAge) {
 const attempts = new Map();
 
 const app = express();
+const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '50kb' }));
 
@@ -71,6 +73,7 @@ const shape = r => ({
   live: r.live_snap, books: r.books, score: r.score, ended: r.ended,
   pub: r.pub_at ? { at: r.pub_at.getTime(), from: r.pub_from ? r.pub_from.getTime() : null, hist: r.pub_hist } : null,
   chk: r.last_check ? r.last_check.getTime() : null,
+  pred: r.prediction || null,
   last: [r.live_snap, r.cur_snap, r.before_snap, r.open_snap].filter(Boolean).sort((a, b) => b.t - a.t)[0] || null
 });
 async function statusInfo() {
@@ -82,23 +85,27 @@ async function statusInfo() {
   };
 }
 
-app.get('/api/me', async (req, res) => res.json({ user: req.user, tz: TZ, sports: SPORTS, books: BOOKS, config: await getConfig() }));
+app.get('/api/me', wrap(async (req, res) => res.json({ user: req.user, tz: TZ, sports: { ...SPORTS, soc: SPORTS.soc.filter(l => isActive(l.k)) }, books: BOOKS, prio: PRIO, propsBooks: PROPS_BOOKS, config: await getConfig() })));
 
-app.get('/api/events', async (req, res) => {
+app.get('/api/events', wrap(async (req, res) => {
   const cfg = await getConfig();
-  const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  const keys = trackedKeys(cfg, tab);
+  const tab = req.query.tab === 'flips' ? 'flips' : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  const keys = tab === 'flips' ? [...trackedKeys(cfg, 'nba'), ...trackedKeys(cfg, 'ncaab'), ...trackedKeys(cfg, 'soc')] : trackedKeys(cfg, tab);
   const now = Date.now();
   const rows = keys.length ? await eventsBySports(keys, now - 14 * DAY, now + 30 * DAY) : [];
   res.json({ events: rows.map(shape), status: await statusInfo() });
-});
+}));
 
-app.get('/api/status', async (req, res) => res.json(await statusInfo()));
+app.get('/api/status', wrap(async (req, res) => res.json(await statusInfo())));
 
-app.put('/api/config', async (req, res) => {
+app.put('/api/config', wrap(async (req, res) => {
   const b = req.body || {}, patch = {};
   if (b.sports) patch.sports = Object.fromEntries(Object.keys(SPORTS).map(t => [t, !!b.sports[t]]));
-  if (Array.isArray(b.leagues)) patch.leagues = b.leagues.filter(k => SPORTS.soc.some(l => l.k === k));
+  if (Array.isArray(b.leagues)) {
+    // Las ligas fuera de temporada no salen en Ajustes: se conservan como estaban.
+    const cur = await getConfig();
+    patch.leagues = [...new Set([...b.leagues.filter(k => SPORTS.soc.some(l => l.k === k)), ...(cur.leagues || []).filter(k => !isActive(k))])];
+  }
   if (Array.isArray(b.books)) patch.books = ['fanduel', ...b.books.filter(k => BOOKS[k] && k !== 'fanduel')];
   if (b.extras != null) patch.extras = !!b.extras;
   if (typeof b.ladder === 'string') patch.ladder = b.ladder.slice(0, 100);
@@ -107,34 +114,58 @@ app.put('/api/config', async (req, res) => {
   if (Number(b.dailyCap) >= 0) patch.dailyCap = Math.min(100000, Math.round(Number(b.dailyCap)));
   res.json({ config: await setConfig(patch) });
   broadcast();
-});
+}));
 
-app.post('/api/refresh', async (req, res) => {
-  const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
-  await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab)));
-  res.json({ ok: true, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
-});
+app.post('/api/refresh', wrap(async (req, res) => {
+  // En "+/− y viceversa" se actualiza el deporte elegido (NBA o fútbol).
+  const tab = req.query.tab === 'flips' ? (['soc', 'ncaab'].includes(req.query.sport) ? req.query.sport : 'nba') : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  const league = String(req.query.league || 'all');
+  await run('actualizar', async () => (await refreshUpcoming(tab)) | (await liveJob(tab, league)));
+  res.json({ ok: true, missing: state.missing.size, error: state.lastError && Date.now() - state.lastError.at < 5000 ? state.lastError.message : null });
+}));
 
 async function eventRow(id) { const r = await q('select * from events where id = $1', [id]); return r.rows[0]; }
-app.post('/api/events/:id/find-opening', async (req, res) => {
+app.post('/api/events/:id/find-opening', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
   try { res.json(await findOpening(e)); } catch (err) { res.status(502).json({ error: err.message }); }
-});
-app.get('/api/events/:id/props', async (req, res) => {
-  const r = await q('select props_open, props, props_t from events where id = $1', [req.params.id]);
-  if (!r.rows[0]) return res.status(404).json({ error: 'notFound' });
-  const x = r.rows[0];
+}));
+app.get('/api/events/:id/props', wrap(async (req, res) => {
+  let x = await eventRow(req.params.id);
+  if (!x) return res.status(404).json({ error: 'notFound' });
+  // Solo se actualizan los partidos que abres: si es hoy (o se está jugando) y la lectura tiene más de 30 min.
+  const now = Date.now(), c = x.commence.getTime(), cfg = await getConfig();
+  const today = new Date(c).toLocaleDateString('en-CA', { timeZone: TZ }) === new Date(now).toLocaleDateString('en-CA', { timeZone: TZ });
+  if (x.sport.startsWith('basketball_') && !x.ended && (today || (c <= now && now - c < 5 * 3600e3)) &&
+      (!x.props_t || now - x.props_t.getTime() >= 30 * 60e3) && (await usedLast24()) < cfg.dailyCap) {
+    try { await fetchProps(x, 'props-en-vivo'); x = await eventRow(req.params.id); } catch (err) { console.error('[props]', err.message); }
+  }
   res.json({ open: x.props_open, cur: x.props, checked: x.props_t ? x.props_t.getTime() : null });
-});
-app.post('/api/events/:id/props/refresh', async (req, res) => {
+}));
+app.post('/api/events/:id/props/refresh', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
-  if (e.sport !== 'basketball_nba') return res.status(400).json({ error: 'notNba' });
+  if (!e.sport.startsWith('basketball_')) return res.status(400).json({ error: 'notNba' });
   try { const ok = await fetchProps(e, 'props-manual'); res.json({ ok }); } catch (err) { res.status(502).json({ error: err.message }); }
-});
-app.post('/api/events/:id/fill-before', async (req, res) => {
+}));
+/* Pronóstico gratis (cuotas + datos públicos de ESPN). Se guarda y se reutiliza 1 hora. */
+const predicting = new Map();
+app.post('/api/events/:id/predict', wrap(async (req, res) => {
+  const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
+  if (!(e.sport.startsWith('basketball_') || e.sport.startsWith('soccer_'))) return res.status(400).json({ error: 'onlyNbaSoccer' });
+  const force = req.query.force === '1';
+  const lang = req.query.lang === 'en' ? 'en' : 'es';
+  if (e.prediction && !force && e.prediction.lang === lang && Date.now() - e.prediction.t < 3600e3) return res.json({ ok: true, pred: e.prediction });
+  if (!predicting.has(e.id)) {
+    predicting.set(e.id, predict(e, lang)
+      .then(async p => { await q('update events set prediction = $2 where id = $1', [e.id, JSON.stringify(p)]); broadcast(); return p; })
+      .finally(() => predicting.delete(e.id)));
+  }
+  try { res.json({ ok: true, pred: await predicting.get(e.id) }); }
+  catch (err) { res.status(502).json({ error: err.message }); }
+}));
+app.post('/api/events/:id/fill-before', wrap(async (req, res) => {
   const e = await eventRow(req.params.id); if (!e) return res.status(404).json({ error: 'notFound' });
   try { res.json(await fillBefore(e)); } catch (err) { res.status(502).json({ error: err.message }); }
-});
+}));
 
 /* ---------- en vivo: aviso a las apps abiertas ---------- */
 const streams = new Map();
@@ -142,11 +173,11 @@ function broadcast() { for (const res of streams.values()) res.write('event: upd
 setNotifier(broadcast);
 app.get('/api/stream', (req, res) => {
   const id = crypto.randomUUID();
-  const tab = SPORTS[req.query.tab] ? req.query.tab : 'nfl';
+  const tab = req.query.tab === 'flips' ? 'flips' : SPORTS[req.query.tab] ? req.query.tab : 'nfl';
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
   res.write('retry: 5000\n\n');
   streams.set(id, res);
-  viewers.set(id, { tab });
+  viewers.set(id, { tab, league: String(req.query.league || 'all') });
   const ping = setInterval(() => res.write(': ping\n\n'), 25e3);
   req.on('close', () => { clearInterval(ping); streams.delete(id); viewers.delete(id); });
 });
@@ -157,7 +188,12 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
 
+process.on('unhandledRejection', e => console.error('[error]', e && e.message ? e.message : e));
+app.use((err, req, res, next) => { console.error('[api]', err.message); res.status(500).json({ error: err.message }); });
+
 await migrate();
+await getConfig();
+try { const n = await restoreSnapshots(); if (n) console.log(`Recuperadas lecturas de ${n} partidos`); } catch (e) { console.error('[restore]', e.message); }
 app.listen(PORT, () => {
   console.log(`SAMGERS ODDS en el puerto ${PORT} (zona horaria ${TZ})`);
   startCollector();
